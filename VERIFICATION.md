@@ -280,3 +280,20 @@ documented root-level `pytest` workflow is unaffected.
    SKILL.md file" bar, not just structurally similar to one.
 
 `claude plugin validate .` re-run after the move — still passes clean.
+
+## Stage 12c: a second real user hit the same false "network policy" diagnosis
+
+An unrelated person who installed the skill independently hit
+`network_error` and their agent session concluded, without further
+verification, that their org's network policy blocked
+wikidata.org/wikimedia.org -- the exact same false conclusion an earlier
+session reached about the maintainer's own machine (disproved at the time
+by a direct `curl` test that worked fine). Since a stranger using this
+skill has no way to reach the maintainer for the same debugging
+walkthrough, the fix had to move into the skill itself rather than stay
+as tribal knowledge: `network_error`'s `hint` now gives the agent an exact
+`curl` command to verify with before concluding anything about the user's
+network, echoed in `SKILL.md`'s error table and
+`references/interpreting.md` with this incident as the worked example.
+Locked in with a test asserting the hint actually contains the `curl`
+command, not just generic advice.
