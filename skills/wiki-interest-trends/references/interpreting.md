@@ -78,3 +78,20 @@ language edition's growth or decline (e.g. a language edition's overall
 readership is falling), not anything specific to the topic. Lead with that
 explanation rather than picking one number to report and ignoring the
 disagreement.
+
+## `network_error`: verify before you diagnose
+
+A real incident, not a hypothetical: an agent hit `network_error`, and
+without checking anything further, told the user "your organization's
+network policy blocks wikidata.org and wikimedia.org" and suggested
+contacting IT. The user tested directly on their own machine (plain
+`curl`, then `uv run resolve_topic.py`) and both worked fine, live. The
+actual cause was specific to the process the agent had just run in, not
+the user's real network at all.
+
+If you hit `network_error`: run the raw `curl` command the error's `hint`
+gives you, in the *same* shell you're already using, before saying
+anything to the user about their network or their organization. If that
+`curl` succeeds, this was a one-off failure in the script's own request --
+just retry it, don't diagnose a phantom network policy. Only report a real
+network/organizational block if the plain `curl` fails too.

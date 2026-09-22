@@ -183,7 +183,7 @@ Quick reference:
 | `qid_not_found` | The QID doesn't exist in Wikidata | Double-check it came from `resolve_topic.py`'s output, not typed from memory |
 | `internal_request_error` | A title contains a character that broke the request URL | This is a bug in the skill, not your input -- report it, don't retry the same way |
 | `upstream_unavailable` | Wikimedia returned repeated 429/5xx even after retries | Wait and try again later; not something to fix by changing your query |
-| `network_error` | Couldn't reach Wikimedia/Wikidata at all | Check network connectivity |
+| `network_error` | Couldn't reach Wikimedia/Wikidata at all | **Verify with a raw `curl` yourself before blaming the network** (the `hint` field gives you the exact command) -- a failure in this specific process is not proof of a real block. Only tell the user to allowlist `wikidata.org`/`wikimedia.org` with their admin if the raw `curl` fails too. Real incident: a prior run confidently diagnosed "org network policy" here and was wrong -- the process itself was the problem, not the user's actual network. |
 | `http_error` | An unexpected HTTP status came back | Likely a malformed request; check the article title/date range you passed |
 | `analysis_not_found` | `report.py --analysis-json` points at a file that doesn't exist | Run `analyze.py` first and pass its actual `analysis_json` path |
 | `fonts_missing` | The skill's own font assets are missing | An installation problem with the skill itself, not your input |

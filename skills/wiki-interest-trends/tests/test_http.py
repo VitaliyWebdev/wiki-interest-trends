@@ -119,6 +119,23 @@ def test_get_json_gives_up_after_persistent_network_exception(recorded_sleeps):
     assert exc_info.value.error_code == "network_error"
 
 
+def test_network_error_hint_tells_the_agent_to_verify_before_blaming_the_network():
+    # Real incident: an agent session confidently told a user "your
+    # organization's network policy blocks this" when the actual cause was
+    # that specific process, not the user's real network -- verified false
+    # by the user running curl themselves. The hint must steer future
+    # agents to check first, not repeat that mistake.
+    session = FakeSession([requests.exceptions.ConnectionError("boom")])
+
+    with pytest.raises(AppError) as exc_info:
+        get_json(session, "https://example.org/a", sleep=lambda s: None, max_retries=0)
+
+    hint = exc_info.value.hint
+    assert "curl" in hint
+    assert "wikidata.org" in hint
+    assert "verify" in hint.lower()
+
+
 def test_build_session_sets_user_agent_with_given_contact():
     session = build_session(contact="me@example.org")
 

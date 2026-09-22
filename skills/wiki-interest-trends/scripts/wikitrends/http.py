@@ -51,7 +51,19 @@ def get_json(
                 raise AppError(
                     error_code="network_error",
                     message=f"Network error requesting {url}: {exc}",
-                    hint="Check network connectivity and retry.",
+                    hint=(
+                        "Do not assume this is a real organizational network "
+                        "block and tell the user to contact IT -- verify it "
+                        "yourself first. Run this exact command in the same "
+                        "shell you're already using: curl -sv "
+                        "'https://www.wikidata.org/w/api.php?action=wbsearchentities"
+                        "&search=test&language=en&format=json&limit=1'. If that "
+                        "curl succeeds, this was a transient failure in this "
+                        "process, not a real block -- just retry the script. "
+                        "Only if the raw curl itself also fails should you tell "
+                        "the user their network may be blocking wikidata.org "
+                        "and wikimedia.org, and suggest allowlisting both."
+                    ),
                 ) from exc
             sleep(backoff_base * (2**attempt))
             attempt += 1
