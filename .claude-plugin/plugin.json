@@ -1,0 +1,19 @@
+{
+  "name": "wiki-interest-trends",
+  "displayName": "Wiki Interest Trends",
+  "version": "1.0.0",
+  "description": "Analyzes interest in a topic over time using Wikipedia pageview statistics across language editions -- compares growth, trend significance, and a confidence level between languages or topics, and can produce a one-page PDF report.",
+  "author": {
+    "name": "VitaliyWebdev"
+  },
+  "repository": "https://github.com/VitaliyWebdev/wiki-interest-trends",
+  "license": "MIT",
+  "keywords": [
+    "wikipedia",
+    "wikidata",
+    "pageviews",
+    "trends",
+    "market-research",
+    "localization"
+  ]
+}

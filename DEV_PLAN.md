@@ -1,10 +1,10 @@
 # Dev plan — wiki-interest-trends
 
-Internal working notes. Not part of the shipped skill (the skill itself is
-`SKILL.md` + `scripts/` + `references/` + `assets/` + `tests/`). Kept here,
-committed, so progress and decisions survive between sessions. The
-reviewer-facing `README.md` gets written for real at Stage 10 — until then
-it stays a stub.
+Internal working notes. Not part of the shipped skill (the skill itself,
+since Stage 12, is `skills/wiki-interest-trends/` containing `SKILL.md` +
+`scripts/` + `references/` + `assets/` — see "Why `skills/wiki-interest-trends/`"
+below). Kept here, committed, so progress and decisions survive between
+sessions.
 
 **Rule:** alongside this stage checklist, every feature/module gets its own
 short doc in `docs/dev/` right after it's built and tested — what it's for,
@@ -32,8 +32,9 @@ Reusability requirement: `resolve_topic.py`, `analyze.py`, `report.py` all
 need the same HTTP client (retries, User-Agent, 404-vs-error distinction),
 the same cache, and the same "small JSON to stdout, everything else to a
 file" contract. That shared behavior lives in one package
-(`scripts/wikitrends/`) instead of being copy-pasted per script, so a fix
-(say, to backoff behavior) only happens once.
+(`skills/wiki-interest-trends/scripts/wikitrends/`) instead of being
+copy-pasted per script, so a fix (say, to backoff behavior) only happens
+once.
 
 ## Stage 0 — API research (done)
 
@@ -75,42 +76,64 @@ version.
 ## File structure
 
 ```
-wiki-interest-trends/
-├── SKILL.md
-├── README.md                  # stub now, real deliverable at Stage 10
-├── DEV_PLAN.md                 # this file — internal only
+wiki-interest-trends/                 # repo root = dev workspace + plugin root
+├── .claude-plugin/
+│   ├── plugin.json                   # Stage 12: makes this repo a Claude Code plugin
+│   └── marketplace.json              # Stage 12: self-hosted single-plugin marketplace
+├── LICENSE                           # MIT (Stage 12)
+├── SKILL.md                          # -> moved under skills/wiki-interest-trends/ (Stage 12)
+├── README.md                         # reviewer-facing, written at Stage 10
+├── DEV_PLAN.md                       # this file — internal only
+├── VERIFICATION.md                   # written at Stage 9, extended at Stage 12
 ├── requirements.txt
-├── scripts/
-│   ├── resolve_topic.py        # CLI: topic/QID -> candidates -> per-language article titles
-│   ├── analyze.py              # CLI: QIDs/titles + langs + range -> analysis.json + short stdout JSON
-│   ├── report.py                # CLI: analysis.json -> 1-page PDF
-│   └── wikitrends/              # shared library, no CLI code here
-│       ├── __init__.py
-│       ├── http.py              # requests session, UA, retry/backoff, 404-vs-error split
-│       ├── cache.py             # SQLite cache keyed by (endpoint, params), TTL for current month
-│       ├── wikidata.py          # wbsearchentities / wbgetentities / sitelinks helpers
-│       ├── pageviews.py         # per-article / aggregate / redirects-of fetchers
-│       ├── stats.py             # YoY, Theil-Sen + Mann-Kendall, peak share, seasonality
-│       ├── trust.py             # deterministic high/medium/low rule + reasons
-│       ├── chart.py             # matplotlib PNG rendering
-│       ├── errors.py            # AppError -> {"ok": false, "error_code", "message", "hint"} contract
-│       └── cli.py               # --help formatting, output-dir/run-id helpers shared by all 3 scripts
-├── references/
-│   ├── methodology.md
-│   ├── api-notes.md
-│   └── interpreting.md
-├── assets/fonts/DejaVuSans*.ttf
+├── conftest.py                       # points pytest at skills/wiki-interest-trends/scripts
 ├── evals/evals.json
-├── VERIFICATION.md              # written at Stage 9
-├── docs/dev/                    # internal-only: one short doc per feature/module
+├── docs/dev/                         # internal-only: one short doc per feature/module
 │   ├── http-client.md
 │   ├── cache.md
 │   ├── errors-and-cli-contract.md
-│   └── wikidata-lookup-and-resolve-topic.md
-└── tests/
-    ├── fixtures/
-    └── test_*.py
+│   ├── wikidata-lookup-and-resolve-topic.md
+│   ├── pageviews.md
+│   ├── stats-and-trust.md
+│   ├── chart-and-analyze-cli.md
+│   └── report-pdf.md
+├── tests/                            # stays at repo root -- dev-only, like docs/dev/
+│   ├── fixtures/
+│   └── test_*.py
+└── skills/
+    └── wiki-interest-trends/         # <- the actual Agent-Skills-spec skill directory
+        ├── SKILL.md
+        ├── scripts/
+        │   ├── resolve_topic.py      # CLI: topic/QID -> candidates -> per-language article titles
+        │   ├── analyze.py            # CLI: QIDs/titles + langs + range -> analysis.json + short stdout JSON
+        │   ├── report.py             # CLI: analysis.json -> 1-page PDF
+        │   └── wikitrends/           # shared library, no CLI code here
+        │       ├── __init__.py
+        │       ├── http.py          # requests session, UA, retry/backoff, 404-vs-error split
+        │       ├── cache.py         # SQLite cache keyed by (endpoint, params), TTL for current month
+        │       ├── wikidata.py      # wbsearchentities / wbgetentities / sitelinks helpers
+        │       ├── pageviews.py     # per-article / aggregate / redirects-of fetchers
+        │       ├── stats.py         # YoY, Theil-Sen + Mann-Kendall, peak share, seasonality
+        │       ├── trust.py         # deterministic high/medium/low rule + reasons
+        │       ├── chart.py         # matplotlib PNG rendering
+        │       ├── errors.py        # AppError -> {"ok": false, "error_code", "message", "hint"} contract
+        │       └── cli.py           # --help formatting, output-dir/run-id helpers shared by all 3 scripts
+        ├── references/
+        │   ├── methodology.md
+        │   ├── api-notes.md
+        │   └── interpreting.md
+        └── assets/fonts/DejaVuSans*.ttf
 ```
+
+**Why `skills/wiki-interest-trends/` and not the repo root, post-Stage-11:**
+Stage 12 (below) converts this repo into an installable Claude Code
+*plugin*, which expects its bundled skill(s) under `<plugin-root>/skills/<skill-name>/`.
+`docs/dev/`, `tests/`, `DEV_PLAN.md`, `VERIFICATION.md`, `evals/` stay at
+the repo root — same reasoning as always: they're dev/verification
+tooling, not part of what an agent reads to use the skill. Every internal
+path reference (tests' `sys.path`, docs' `**File:**` headers, README's
+commands) was updated accordingly; see the Stage 12 entry for the full
+list of what moved and why.
 
 Rationale for the split inside `wikitrends/`: each file owns exactly one
 concern (HTTP transport vs. caching vs. domain lookups vs. stats vs.
@@ -219,10 +242,36 @@ without a green light on the previous one.
       calls). Full eval suite run for real on Haiku 4.5 (Stage 9).
       Everything logged in `VERIFICATION.md`.
 
-**All 11 stages complete.** The skill is built, tested (124 tests),
+**All 11 planned stages complete.** The skill is built, tested (124 tests),
 documented (`SKILL.md` + `references/` + `docs/dev/`), verified against
 live data and a live Haiku 4.5 run, with every finding from that
 verification fixed in the skill itself rather than worked around.
+
+- [x] **Stage 12 (post-completion) — Claude Code plugin + self-hosted
+      marketplace**, so any user (not just developers comfortable with
+      git) can add this skill with two slash commands instead of a manual
+      clone/symlink. Schema verified against the live docs (fetched
+      `plugins-reference.md` / `plugin-marketplaces.md` directly, not
+      recalled) before writing `.claude-plugin/plugin.json` /
+      `.claude-plugin/marketplace.json` — the self-referential
+      `"source": "./"` case for a single-plugin-at-repo-root marketplace
+      isn't spelled out with a worked example in the docs, so this was
+      confirmed by fetching the docs' own text on relative-path resolution
+      rather than guessed. Required moving `SKILL.md`/`scripts/`/
+      `references/`/`assets/` into `skills/wiki-interest-trends/` per
+      plugin convention (`<plugin-root>/skills/<skill-name>/SKILL.md`) --
+      `tests/`/`docs/dev/`/`DEV_PLAN.md`/`VERIFICATION.md`/`evals/` stay at
+      the repo root, same "not part of the shipped skill" reasoning as
+      always. Every internal path reference updated: `conftest.py`, the 3
+      test files with their own `sys.path.insert`, `test_skill_md.py`'s
+      `SKILL_MD` constant, README's commands and links, and every
+      `**File:**`/prose path mention across `docs/dev/*.md`. Added
+      `LICENSE` (MIT) — flagged as missing back in Stage 10's README, now
+      actually needed since this makes the skill genuinely
+      publicly-installable. Done on a branch
+      (`plugin-marketplace-restructure`), merged to `main` once verified
+      — see `VERIFICATION.md` for the real `/plugin marketplace add` +
+      `/plugin install` test.
 
 ## Global constraints (from the spec, copied verbatim in spirit)
 

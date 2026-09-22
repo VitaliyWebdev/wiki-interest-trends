@@ -1,6 +1,6 @@
 # stats.py + trust.py — the numbers an agent can't sanity-check itself
 
-**Files:** `scripts/wikitrends/stats.py`, `scripts/wikitrends/trust.py`
+**Files:** `skills/wiki-interest-trends/scripts/wikitrends/stats.py`, `skills/wiki-interest-trends/scripts/wikitrends/trust.py`
 **Tests:** `tests/test_stats.py` (20), `tests/test_trust.py` (8)
 
 ## Why this is the highest-stakes module in the skill

@@ -1,6 +1,6 @@
 # wikidata.py + resolve_topic.py — topic → QID → article titles
 
-**Files:** `scripts/wikitrends/wikidata.py`, `scripts/resolve_topic.py`
+**Files:** `skills/wiki-interest-trends/scripts/wikitrends/wikidata.py`, `skills/wiki-interest-trends/scripts/resolve_topic.py`
 **Tests:** `tests/test_wikidata.py`, `tests/test_resolve_topic.py`
 **Fixtures:** `tests/fixtures/wikidata/*.json` — real recorded Wikidata API responses (see below)
 

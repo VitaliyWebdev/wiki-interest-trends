@@ -1,6 +1,6 @@
 # cache.py — SQLite response cache
 
-**File:** `scripts/wikitrends/cache.py`
+**File:** `skills/wiki-interest-trends/scripts/wikitrends/cache.py`
 **Tests:** `tests/test_cache.py`
 
 ## What it's for

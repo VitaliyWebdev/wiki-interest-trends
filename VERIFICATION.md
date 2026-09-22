@@ -154,3 +154,53 @@ Everything below was actually executed, not just planned:
 
 No new issues turned up in this final pass beyond what Stages 8/9 already
 found and fixed.
+
+## Stage 12: plugin + marketplace packaging, real install test
+
+Requested after Stage 11: package this repo as an installable Claude Code
+plugin with a self-hosted marketplace, so any user (not only developers
+comfortable with git) can add it with two commands. Schema was fetched
+directly from the live docs (`plugins-reference.md`,
+`plugin-marketplaces.md`) rather than recalled, since the self-referential
+`"source": "./"` case (marketplace and its one plugin in the same repo
+root) isn't spelled out with a worked example in the docs — confirmed
+instead from the docs' own text on relative-path resolution
+("`Paths resolve relative to the marketplace root, which is the directory
+containing .claude-plugin/`").
+
+Done on a branch (`plugin-marketplace-restructure`) rather than directly
+on `main`, per explicit request, so there's a rollback point.
+
+**`claude plugin validate .`**: passed clean after one fix — the initial
+`marketplace.json` had `description` at the top level, which the validator
+rejected (`Unrecognized key: "description"`); moved it under `metadata.description`
+per the validator's own suggested fix, then passed with zero warnings.
+
+**Real install test, not just schema validation.** In a fresh scratch
+workspace with no prior `.claude/skills/` setup at all:
+```
+claude plugin marketplace add /Users/user/wiki-interest-trends
+claude plugin install wiki-interest-trends@wiki-interest-trends-marketplace
+```
+Both succeeded (`claude plugin list` showed it `✔ enabled`). Then ran a
+brand-new query (Django, not used in any earlier eval) via
+`claude --model haiku`: the transcript shows `Skill: wiki-interest-trends`
+firing correctly, `uv run /Users/user/wiki-interest-trends/skills/wiki-interest-trends/scripts/resolve_topic.py`
+and `analyze.py` running with the new nested path, and — the specific
+thing this test needed to prove — `wikitrends-out/` landing in
+`/tmp/plugin-test-workspace/` (the scratch workspace), not inside the
+plugin/skill's own installed directory. Answer was correct (Django
+interest in en: -41.66% YoY, high trust, correctly explained).
+
+Test installation uninstalled and the test marketplace removed afterward,
+so nothing was left behind in the real Claude Code config used for this
+whole build.
+
+(Note: `/plugin marketplace add ...` typed as a chat message inside `-p`
+mode does **not** work — it's read as a request to invoke a skill literally
+named "plugin" and fails with "Unknown skill: plugin". The actual
+mechanism is the direct CLI subcommands used above,
+`claude plugin marketplace add` / `claude plugin install`, run from a
+shell — not slash-commands sent through a prompt. Interactive sessions
+presumably intercept `/plugin ...` as a slash command before it reaches
+the model; non-interactive `-p` mode does not.)

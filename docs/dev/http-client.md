@@ -1,6 +1,6 @@
 # http.py — retrying JSON GET
 
-**File:** `scripts/wikitrends/http.py`
+**File:** `skills/wiki-interest-trends/scripts/wikitrends/http.py`
 **Tests:** `tests/test_http.py` (fake transport, no network)
 
 ## What it's for
