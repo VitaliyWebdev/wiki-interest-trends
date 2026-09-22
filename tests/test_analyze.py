@@ -203,3 +203,75 @@ def test_analyze_two_different_qids_same_lang_shares_one_aggregate_call(tmp_path
 
     assert len(result["series"]) == 2
     assert len(session.calls) == 5  # not 6 -- the second aggregate call hit the cache
+
+
+def test_analyze_include_redirects_sums_redirect_views_into_the_main_series(tmp_path):
+    main_article = {
+        "items": [
+            {"timestamp": "20240101" + "00", "views": 100},
+            {"timestamp": "20240201" + "00", "views": 120},
+        ]
+    }
+    redirects_of = {
+        "query": {
+            "pages": {
+                "1": {
+                    "pageid": 1,
+                    "ns": 0,
+                    "title": "Main Article",
+                    "redirects": [{"pageid": 2, "ns": 0, "title": "Main Article Redirect"}],
+                }
+            }
+        }
+    }
+    redirect_article = {
+        "items": [
+            {"timestamp": "20240101" + "00", "views": 5},
+            {"timestamp": "20240201" + "00", "views": 7},
+        ]
+    }
+    aggregate = load_fixture("pageviews", "aggregate_uk.json")
+
+    session = FakeSession(
+        [
+            FakeResponse(200, main_article),
+            FakeResponse(200, redirects_of),
+            FakeResponse(200, redirect_article),
+            FakeResponse(200, aggregate),
+        ]
+    )
+    cache = Cache(path=tmp_path / "cache")
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+
+    result = analyze(
+        session, cache,
+        titles=["Main Article"], lang="uk",
+        start="20240101", end="20240430", granularity="monthly",
+        include_redirects=True, run_dir=run_dir,
+    )
+
+    analysis = json.loads(Path(result["analysis_json"]).read_text())
+    raw = analysis["series"][0]["raw"]
+    assert raw == [
+        {"timestamp": "20240101" + "00", "views": 105},  # 100 + 5
+        {"timestamp": "20240201" + "00", "views": 127},  # 120 + 7
+    ]
+
+
+def test_analyze_without_include_redirects_does_not_call_redirects_endpoint(tmp_path):
+    main_article = {"items": [{"timestamp": "20240101" + "00", "views": 100}]}
+    aggregate = load_fixture("pageviews", "aggregate_uk.json")
+    session = FakeSession([FakeResponse(200, main_article), FakeResponse(200, aggregate)])
+    cache = Cache(path=tmp_path / "cache")
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+
+    analyze(
+        session, cache,
+        titles=["Main Article"], lang="uk",
+        start="20240101", end="20240430", granularity="monthly",
+        include_redirects=False, run_dir=run_dir,
+    )
+
+    assert len(session.calls) == 2  # per-article + aggregate only, no redirects lookup
