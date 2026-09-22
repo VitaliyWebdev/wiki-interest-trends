@@ -226,7 +226,26 @@ and cross-referencing them would catch cases where Wikipedia's audience
 (people who read encyclopedic articles) doesn't represent the actual
 target market well.
 
-## License
+## Updating
+
+Users don't need to re-clone or re-add anything — Claude Code pulls from
+this GitHub repo itself. There's a background check, or a user can force
+it immediately:
+```bash
+claude plugin update wiki-interest-trends@wiki-interest-trends-marketplace
+# or, to refresh the whole marketplace:
+claude plugin marketplace update
+```
+
+**Maintainer note — `.claude-plugin/plugin.json` intentionally has no
+`version` field.** Per Claude Code's own docs: when `version` *is* set,
+that exact string is the only update signal — push new commits without
+bumping it, and every already-installed user keeps the stale cached copy
+forever, even if they explicitly run an update command. Omitting `version`
+makes Claude Code fall back to the resolved git commit SHA instead, so
+every push to `main` is automatically a detectable update with nothing to
+remember. Don't add a hardcoded `version` back without also committing to
+bumping it on every single release.
 
 Code: [MIT](LICENSE). `skills/wiki-interest-trends/assets/fonts/LICENSE.txt`
 carries the DejaVu Sans font license (Bitstream Vera Fonts Copyright + Arev
