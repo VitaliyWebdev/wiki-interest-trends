@@ -1,6 +1,9 @@
 import json
 import os
 import sys
+import time
+import uuid
+from pathlib import Path
 from typing import Any, Callable, Tuple
 
 from .cache import Cache
@@ -24,3 +27,14 @@ def run_cli(main_fn: Callable[[], Any]) -> None:
 def make_session_and_cache() -> Tuple[Any, Cache]:
     contact = os.environ.get("WIKITRENDS_CONTACT")
     return build_session(contact=contact), Cache()
+
+
+def new_run_dir(base: Path = Path("wikitrends-out")) -> Path:
+    """A fresh ./wikitrends-out/<run-id>/ directory (per the spec: outputs
+    go in the caller's cwd, never inside the skill directory) for one
+    analyze.py run's analysis.json + chart.png. report.py doesn't call this
+    -- it writes its PDF as a sibling of the analysis.json path it's given."""
+    run_id = f"{time.strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    run_dir = base / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    return run_dir

@@ -3,3 +3,4 @@
 # fallback for running everything (including tests) via plain pip/venv.
 requests==2.34.2
 pytest==9.1.1
+matplotlib==3.11.2

@@ -3,7 +3,7 @@ import json
 import pytest
 
 from wikitrends.errors import AppError
-from wikitrends.cli import make_session_and_cache, run_cli
+from wikitrends.cli import make_session_and_cache, new_run_dir, run_cli
 
 
 def test_run_cli_prints_return_value_as_compact_json(capsys):
@@ -46,3 +46,24 @@ def test_make_session_and_cache_uses_wikitrends_contact_env_var(monkeypatch, tmp
     assert "me@example.org" in session.headers["User-Agent"]
     cache.set("k", "v")
     assert cache.get("k") == "v"
+
+
+def test_new_run_dir_creates_a_unique_directory_under_base(tmp_path):
+    base = tmp_path / "wikitrends-out"
+
+    run_dir = new_run_dir(base=base)
+
+    assert run_dir.exists()
+    assert run_dir.is_dir()
+    assert run_dir.parent == base
+
+
+def test_new_run_dir_calls_never_collide(tmp_path):
+    base = tmp_path / "wikitrends-out"
+
+    first = new_run_dir(base=base)
+    second = new_run_dir(base=base)
+
+    assert first != second
+    assert first.exists()
+    assert second.exists()
