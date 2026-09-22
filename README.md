@@ -15,19 +15,24 @@ see [Why the architecture is this shape](#why-the-architecture-is-this-shape).
 Requires Python 3.10+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-git clone <this repo>
+git clone https://github.com/VitaliyWebdev/wiki-interest-trends.git
 cd wiki-interest-trends
 
 # Find a topic's Wikidata QID and its article title per language
-uv run scripts/resolve_topic.py --query "інтервальне голодування" --query-lang uk --langs pl,cs
+uv run skills/wiki-interest-trends/scripts/resolve_topic.py --query "інтервальне голодування" --query-lang uk --langs pl,cs
 
 # Analyze growth/trend/trust across languages, over the last 24 complete months
-uv run scripts/analyze.py --qids Q1666254 --langs pl,cs,uk --last 24m
+uv run skills/wiki-interest-trends/scripts/analyze.py --qids Q1666254 --langs pl,cs,uk --last 24m
 
 # Turn that into a one-page PDF (path comes from analyze.py's own output)
-uv run scripts/report.py --analysis-json wikitrends-out/<run-id>/analysis.json --lang uk \
+uv run skills/wiki-interest-trends/scripts/report.py --analysis-json wikitrends-out/<run-id>/analysis.json --lang uk \
   --summary "Your conclusion, grounded in the numbers above."
 ```
+
+(These paths are repo-root-relative, for running the scripts directly from a
+checkout. Inside `SKILL.md` itself, the same commands are written as
+`scripts/resolve_topic.py` etc. — relative to the skill's *own* directory,
+which is what an agent actually uses.)
 
 Each script is self-contained via [PEP 723](https://peps.python.org/pep-0723/)
 inline metadata — `uv run` handles the venv and pinned dependencies with no
@@ -46,32 +51,40 @@ uv venv .venv && uv pip install -r requirements.txt --python .venv/bin/python
 
 ### Installing as a Claude Code skill
 
-Claude Code doesn't have an "install from GitHub" button — a skill is just
-a directory with a `SKILL.md` at its root (this repo already qualifies as-is,
-no plugin manifest needed) placed somewhere Claude Code looks for skills:
+**Recommended — as a plugin, no git/terminal needed.** This repo is its
+own self-hosted plugin marketplace (`.claude-plugin/marketplace.json` +
+`.claude-plugin/plugin.json`). Inside any Claude Code session:
+
+```
+/plugin marketplace add VitaliyWebdev/wiki-interest-trends
+/plugin install wiki-interest-trends@wiki-interest-trends-marketplace
+```
+
+That's it — two slash commands, works for any user, not just developers
+comfortable with git. Run `/skills` afterward to confirm it's active.
+
+**Alternative — manual clone/symlink**, if you'd rather manage it as a
+plain directory (e.g. to track your own fork without going through the
+plugin system). Note the skill itself lives under `skills/wiki-interest-trends/`
+in this repo, not at the repo root, so point Claude Code at that
+subdirectory specifically:
 
 ```bash
 # Personal — available in every project on this machine
-git clone https://github.com/VitaliyWebdev/wiki-interest-trends.git ~/.claude/skills/wiki-interest-trends
+git clone https://github.com/VitaliyWebdev/wiki-interest-trends.git /tmp/wit-src
+ln -s /tmp/wit-src/skills/wiki-interest-trends ~/.claude/skills/wiki-interest-trends
 
-# Project-scoped — available only inside one project
-git clone https://github.com/VitaliyWebdev/wiki-interest-trends.git <your-project>/.claude/skills/wiki-interest-trends
+# Or, if you already have a local checkout (e.g. this one, for development):
+ln -s /path/to/your/wiki-interest-trends/skills/wiki-interest-trends ~/.claude/skills/wiki-interest-trends
 ```
 
-If you already have this repo cloned elsewhere and want Claude Code to
-always see your working copy (so local edits/commits show up without
-re-cloning), symlink instead of cloning again:
-
-```bash
-ln -s /path/to/your/wiki-interest-trends ~/.claude/skills/wiki-interest-trends
-```
-
-Run `/skills` in Claude Code to confirm it's picked up, and toggle it on
-if needed.
+Either way, `uv` and Python 3.10+ still need to be available locally —
+neither install method installs those for you; they only place the skill's
+files where Claude Code looks for them.
 
 ## Examples
 
-See [SKILL.md](SKILL.md#examples) for the three primary example queries
+See [SKILL.md](skills/wiki-interest-trends/SKILL.md#examples) for the three primary example queries
 this skill is designed around (cross-language comparison, single-topic
 trust check, cross-topic comparison + report), each with the exact
 commands an agent runs.
@@ -88,7 +101,7 @@ level itself. That single decision drives everything else:
   statistics (e.g. Theil-Sen recovers an exact `ln(2)` slope even with a
   1,000,000-view outlier injected — see
   [docs/dev/stats-and-trust.md](docs/dev/stats-and-trust.md)).
-- **One shared library, `scripts/wikitrends/`**, not three copies of HTTP/
+- **One shared library, `skills/wiki-interest-trends/scripts/wikitrends/`**, not three copies of HTTP/
   cache/error-handling logic — `resolve_topic.py`, `analyze.py`, and
   `report.py` each stay a thin CLI layer over it. See
   [DEV_PLAN.md](DEV_PLAN.md)'s file structure section for the module
@@ -98,14 +111,14 @@ level itself. That single decision drives everything else:
   raw-vs-normalized agreement, peak concentration), never a judgment call
   handed to the calling model. Every level comes with human-readable
   reasons, localized to the report's own language — not just a bare label.
-  Full rule: [references/methodology.md](references/methodology.md).
+  Full rule: [references/methodology.md](skills/wiki-interest-trends/references/methodology.md).
 - **Real API research over documentation-from-memory**, throughout. Two
   concrete gotchas that only showed up in actual requests, not the docs:
   an unescaped `/` in an article title causes a 404 that looks exactly
   like "no data" but means the URL is malformed; monthly-granularity
   pageviews return a *partial* sum for a month `end` falls mid-way
   through, not the full month. Both documented with the real requests that
-  found them in [references/api-notes.md](references/api-notes.md).
+  found them in [references/api-notes.md](skills/wiki-interest-trends/references/api-notes.md).
 - **Every stage was verified by actually running it**, not just passing
   its own tests — live smoke tests via `uv run` after each stage, a
   rendered PDF actually looked at (which is how two real bugs were caught
@@ -134,7 +147,8 @@ that's the fastest way into the actual implementation reasoning;
 - **Trust-level thresholds** (30/100 views-per-month, 0.35/0.5 peak
   share, etc.) are reasoned defaults, not calibrated against a labeled
   dataset — none exists for this task. Real usage is the place to
-  sanity-check them; they're named constants in `scripts/wikitrends/trust.py`.
+  sanity-check them; they're named constants in
+  `skills/wiki-interest-trends/scripts/wikitrends/trust.py`.
 - **`--titles` mode is single-language by design** (compare several
   topics within one edition); cross-language comparison always goes
   through `--qids`. See `docs/dev/chart-and-analyze-cli.md` for the
@@ -177,7 +191,7 @@ target market well.
 
 ## License
 
-Code: no license file added (add one before any public distribution).
-`assets/fonts/LICENSE.txt` carries the DejaVu Sans font license
-(Bitstream Vera Fonts Copyright + Arev Fonts Copyright, both permissive),
-extracted from the font's own embedded metadata.
+Code: [MIT](LICENSE). `skills/wiki-interest-trends/assets/fonts/LICENSE.txt`
+carries the DejaVu Sans font license (Bitstream Vera Fonts Copyright + Arev
+Fonts Copyright, both permissive), extracted from the font's own embedded
+metadata.

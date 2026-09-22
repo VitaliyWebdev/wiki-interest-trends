@@ -1,0 +1,16 @@
+{
+  "name": "wiki-interest-trends-marketplace",
+  "owner": {
+    "name": "VitaliyWebdev"
+  },
+  "metadata": {
+    "description": "Self-hosted single-plugin marketplace for wiki-interest-trends, a Wikipedia pageview trend analysis skill."
+  },
+  "plugins": [
+    {
+      "name": "wiki-interest-trends",
+      "source": "./",
+      "description": "Analyzes interest in a topic over time using Wikipedia pageview statistics across language editions, with trend significance testing and a deterministic confidence level."
+    }
+  ]
+}

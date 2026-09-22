@@ -1,8 +1,8 @@
 # report.py — analysis.json → one-page PDF
 
-**File:** `scripts/report.py`
+**File:** `skills/wiki-interest-trends/scripts/report.py`
 **Tests:** `tests/test_report.py`
-**Assets:** `assets/fonts/DejaVuSans.ttf`, `assets/fonts/DejaVuSans-Bold.ttf` (+ `LICENSE.txt`)
+**Assets:** `skills/wiki-interest-trends/assets/fonts/DejaVuSans.ttf`, `skills/wiki-interest-trends/assets/fonts/DejaVuSans-Bold.ttf` (+ `LICENSE.txt`)
 
 ## Two real bugs this caught (found by actually running it, not by reading the code)
 
@@ -77,11 +77,11 @@ throws 15 series and long repeated Ukrainian text at it and still asserts
 
 ## Fonts
 
-`assets/fonts/DejaVuSans.ttf` + `DejaVuSans-Bold.ttf` are copied from
+`skills/wiki-interest-trends/assets/fonts/DejaVuSans.ttf` + `DejaVuSans-Bold.ttf` are copied from
 matplotlib's own bundled fonts (`matplotlib/mpl-data/fonts/ttf/`) rather
 than fetched from a third party -- same files, no separate download/license
 research needed since matplotlib already ships and relies on them.
-`assets/fonts/LICENSE.txt` is the actual license text extracted from the
+`skills/wiki-interest-trends/assets/fonts/LICENSE.txt` is the actual license text extracted from the
 font's own `name` table (nameID 13, via `fontTools`), not retyped from
 memory. `_register_fonts()` checks the files exist on *every* call (cheap)
 and only calls `pdfmetrics.registerFont()` once per process (the registry

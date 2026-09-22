@@ -1,6 +1,6 @@
 # chart.py + analyze.py — putting it all together
 
-**Files:** `scripts/wikitrends/chart.py`, `scripts/analyze.py`
+**Files:** `skills/wiki-interest-trends/scripts/wikitrends/chart.py`, `skills/wiki-interest-trends/scripts/analyze.py`
 **Tests:** `tests/test_chart.py`, `tests/test_analyze.py`
 
 ## `chart.py`
@@ -26,7 +26,7 @@ Stage 11's real end-to-end run is for.
 
 **Known limitation, found during the Stage 9 Haiku eval run (not
 hypothetical — hit for real analyzing "English" across `uk,pl,es,ja,ru,pt,de`):**
-DejaVu Sans (the only font shipped in `assets/fonts/`) has no CJK glyphs.
+DejaVu Sans (the only font shipped in `skills/wiki-interest-trends/assets/fonts/`) has no CJK glyphs.
 An article title containing Chinese/Japanese/Korean characters in the
 chart legend renders as missing-glyph boxes and matplotlib logs a
 `UserWarning: Glyph ... missing from font(s) DejaVu Sans` on stderr. This

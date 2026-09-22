@@ -1,6 +1,6 @@
 # errors.py + cli.py — the stdout/error contract
 
-**Files:** `scripts/wikitrends/errors.py`, `scripts/wikitrends/cli.py`
+**Files:** `skills/wiki-interest-trends/scripts/wikitrends/errors.py`, `skills/wiki-interest-trends/scripts/wikitrends/cli.py`
 **Tests:** `tests/test_errors.py`, `tests/test_cli.py`
 
 ## What it's for
@@ -31,8 +31,9 @@ bug we need to fix) raises `AppError` with a specific `error_code` and a
 not "an error occurred". `error_code` values in use so far:
 `qid_not_found` (wikidata.py), `upstream_unavailable`, `network_error`,
 `http_error` (http.py). Each new failure mode a script can hit gets its own
-`error_code` — see `references/methodology.md` (Stage 7) for the full list
-once it exists; for now, grep `error_code=` across `scripts/`.
+`error_code` — see `skills/wiki-interest-trends/SKILL.md`'s error code table
+for the agent-facing list; grep `error_code=` across
+`skills/wiki-interest-trends/scripts/` for the authoritative one in code.
 
 ## `cli.py`
 

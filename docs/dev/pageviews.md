@@ -1,6 +1,6 @@
 # pageviews.py — fetching + normalizing pageview counts
 
-**File:** `scripts/wikitrends/pageviews.py`
+**File:** `skills/wiki-interest-trends/scripts/wikitrends/pageviews.py`
 **Tests:** `tests/test_pageviews.py`
 **Fixtures:** `tests/fixtures/pageviews/*.json` — real recorded responses
 
