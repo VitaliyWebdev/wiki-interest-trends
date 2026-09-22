@@ -197,9 +197,15 @@ without a green light on the previous one.
       124 tests total. Spot-checked 2 articles + 1 project total against
       pageviews.wmcloud.org live in the browser — all three exact matches,
       logged in `VERIFICATION.md`.
-- [ ] **Stage 9 — evals**: `evals/evals.json` (3 sample queries + edge
-      cases from the spec), run for real on Haiku 4.5, fix `SKILL.md`/CLI
-      contracts based on failures (not the eval), `VERIFICATION.md` log.
+- [x] **Stage 9 — evals**: `evals/evals.json` (3 sample queries + 5 edge
+      cases). All 8 run for real on `claude --model haiku`, against the
+      skill symlinked into a scratch workspace as a real discoverable
+      project skill. Found and fixed 3 real `SKILL.md` gaps (relative
+      script paths breaking outside the skill dir — and a first fix that
+      was itself wrong, caught by re-running, not just reasoning about it;
+      unspecified-languages treated like genuine topic ambiguity; "звіт"
+      not triggering `report.py`). Full before/after log in
+      `VERIFICATION.md`.
 - [ ] **Stage 10 — final `README.md`** for the reviewer: install/run,
       architecture rationale, "як розвивати далі".
 - [ ] **Stage 11 — real end-to-end run (I actually execute this, not just
