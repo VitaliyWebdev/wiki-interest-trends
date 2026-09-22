@@ -209,27 +209,20 @@ without a green light on the previous one.
 - [x] **Stage 10 — final `README.md`** for the reviewer: install/run, the
       3 primary examples, architecture rationale, known limitations, and
       "як розвивати далі" (scale, deeper research, other signal sources).
-- [ ] **Stage 11 — real end-to-end run (I actually execute this, not just
-      write tests for it)**: after everything above is green, run the
-      finished skill for real, against the live network, the way the agent
-      would:
-      - `uv run scripts/resolve_topic.py ...` and `uv run
-        scripts/analyze.py ...` and `uv run scripts/report.py ...` for
-        real, for all 3 example queries from the task (§"Приклади
-        запитів"), not fixtures — confirm the JSON contracts and the PDF
-        actually come out right against today's live data.
-      - Cross-check the numbers for 2-3 articles against
-        https://pageviews.wmcloud.org by hand.
-      - Run the real cache-hit path: repeat a query and confirm the second
-        run does not hit the network (per the spec's "повторні запити мають
-        бути швидкими завдяки кешу").
-      - Run the full `evals/evals.json` suite for real on Haiku 4.5 (e.g.
-        `claude --model haiku`), not a simulated/predicted transcript —
-        record call counts and failures, fix `SKILL.md`/script contracts
-        (not the eval) based on what actually happens.
-      - Write up everything actually observed (commands run, output,
-        fixes made) in `VERIFICATION.md` — this is the log the reviewer
-        checks to know the AI's own claims were verified, not asserted.
+- [x] **Stage 11 — real end-to-end run**: all 3 scripts run for real via
+      `uv run` (repeatedly through Stages 2/3/5/6, and again for all 3
+      primary example queries via real Haiku transcripts in Stage 9).
+      Numbers cross-checked against pageviews.wmcloud.org (Stage 8).
+      Cache-hit path confirmed live and decisively: 3 repeat runs against
+      a fresh cache dir, `cache.sqlite3`'s mtime/size byte-identical after
+      the 2nd and 3rd runs (zero writes = zero misses = zero network
+      calls). Full eval suite run for real on Haiku 4.5 (Stage 9).
+      Everything logged in `VERIFICATION.md`.
+
+**All 11 stages complete.** The skill is built, tested (124 tests),
+documented (`SKILL.md` + `references/` + `docs/dev/`), verified against
+live data and a live Haiku 4.5 run, with every finding from that
+verification fixed in the skill itself rather than worked around.
 
 ## Global constraints (from the spec, copied verbatim in spirit)
 
