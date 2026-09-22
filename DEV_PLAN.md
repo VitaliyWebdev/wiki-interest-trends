@@ -206,8 +206,9 @@ without a green light on the previous one.
       unspecified-languages treated like genuine topic ambiguity; "звіт"
       not triggering `report.py`). Full before/after log in
       `VERIFICATION.md`.
-- [ ] **Stage 10 — final `README.md`** for the reviewer: install/run,
-      architecture rationale, "як розвивати далі".
+- [x] **Stage 10 — final `README.md`** for the reviewer: install/run, the
+      3 primary examples, architecture rationale, known limitations, and
+      "як розвивати далі" (scale, deeper research, other signal sources).
 - [ ] **Stage 11 — real end-to-end run (I actually execute this, not just
       write tests for it)**: after everything above is green, run the
       finished skill for real, against the live network, the way the agent
