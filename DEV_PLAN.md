@@ -123,10 +123,15 @@ without a green light on the previous one.
       permanent for closed months) is a *caller* decision — `cache.py`
       only provides `ttl_seconds=None` (forever) vs. a number; `pageviews.py`
       in Stage 3 decides which to pass per month.
-- [ ] **Stage 2 — `resolve_topic.py`**: wikidata.py + the CLI itself.
-      Ambiguity detection (multiple substantially different candidates →
-      surfaced, not guessed), missing-language handling. Tests against
-      recorded fixtures.
+- [x] **Stage 2 — `resolve_topic.py`**: `wikidata.py` (search, sitelinks,
+      redirects, all cached, 7-day TTL) + `cli.py` (shared stdout/error
+      contract) + the CLI itself. Never silently picks a candidate — always
+      returns every match with description, so ambiguous topics (tested
+      against the real "Меркурій" case: planet/element/god/city/ship) get
+      surfaced, not guessed. 38 tests total, all against real recorded
+      fixtures, no live calls in the test suite. Smoke-tested for real via
+      `uv run scripts/resolve_topic.py` against live Wikidata (not just
+      fixtures) before committing.
 - [ ] **Stage 3 — pageviews fetching**: `pageviews.py` (per-article,
       aggregate, redirects-of, title encoding, 404 handling) wired into
       `analyze.py` up to "I have raw + normalized numbers", no stats yet.
