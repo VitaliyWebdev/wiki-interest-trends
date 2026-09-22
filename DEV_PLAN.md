@@ -152,6 +152,27 @@ without a green light on the previous one.
       contracts based on failures (not the eval), `VERIFICATION.md` log.
 - [ ] **Stage 10 — final `README.md`** for the reviewer: install/run,
       architecture rationale, "як розвивати далі".
+- [ ] **Stage 11 — real end-to-end run (I actually execute this, not just
+      write tests for it)**: after everything above is green, run the
+      finished skill for real, against the live network, the way the agent
+      would:
+      - `uv run scripts/resolve_topic.py ...` and `uv run
+        scripts/analyze.py ...` and `uv run scripts/report.py ...` for
+        real, for all 3 example queries from the task (§"Приклади
+        запитів"), not fixtures — confirm the JSON contracts and the PDF
+        actually come out right against today's live data.
+      - Cross-check the numbers for 2-3 articles against
+        https://pageviews.wmcloud.org by hand.
+      - Run the real cache-hit path: repeat a query and confirm the second
+        run does not hit the network (per the spec's "повторні запити мають
+        бути швидкими завдяки кешу").
+      - Run the full `evals/evals.json` suite for real on Haiku 4.5 (e.g.
+        `claude --model haiku`), not a simulated/predicted transcript —
+        record call counts and failures, fix `SKILL.md`/script contracts
+        (not the eval) based on what actually happens.
+      - Write up everything actually observed (commands run, output,
+        fixes made) in `VERIFICATION.md` — this is the log the reviewer
+        checks to know the AI's own claims were verified, not asserted.
 
 ## Global constraints (from the spec, copied verbatim in spirit)
 
