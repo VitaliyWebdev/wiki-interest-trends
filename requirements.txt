@@ -1,0 +1,5 @@
+# Runtime + dev dependencies, pinned. Individual scripts under scripts/ also
+# declare their own PEP 723 inline metadata for `uv run`; this file is the
+# fallback for running everything (including tests) via plain pip/venv.
+requests==2.34.2
+pytest==9.1.1
