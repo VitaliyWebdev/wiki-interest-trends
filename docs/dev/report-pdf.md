@@ -1,7 +1,7 @@
 # report.py — analysis.json → one-page PDF
 
 **File:** `skills/wiki-interest-trends/scripts/report.py`
-**Tests:** `tests/test_report.py`
+**Tests:** `skills/wiki-interest-trends/tests/test_report.py`
 **Assets:** `skills/wiki-interest-trends/assets/fonts/DejaVuSans.ttf`, `skills/wiki-interest-trends/assets/fonts/DejaVuSans-Bold.ttf` (+ `LICENSE.txt`)
 
 ## Two real bugs this caught (found by actually running it, not by reading the code)

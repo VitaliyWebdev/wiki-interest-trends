@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "skills" / "wiki-interest-trends" / "scripts"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from resolve_topic import build_arg_parser, resolve_topic
 from wikitrends.cache import Cache

@@ -1,7 +1,7 @@
 # errors.py + cli.py — the stdout/error contract
 
 **Files:** `skills/wiki-interest-trends/scripts/wikitrends/errors.py`, `skills/wiki-interest-trends/scripts/wikitrends/cli.py`
-**Tests:** `tests/test_errors.py`, `tests/test_cli.py`
+**Tests:** `skills/wiki-interest-trends/tests/test_errors.py`, `skills/wiki-interest-trends/tests/test_cli.py`
 
 ## What it's for
 

@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-SKILL_MD = Path(__file__).parent.parent / "skills" / "wiki-interest-trends" / "SKILL.md"
+SKILL_MD = Path(__file__).parent.parent / "SKILL.md"
 
 
 def _frontmatter_and_body():

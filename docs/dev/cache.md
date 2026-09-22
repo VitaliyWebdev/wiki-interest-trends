@@ -1,7 +1,7 @@
 # cache.py — SQLite response cache
 
 **File:** `skills/wiki-interest-trends/scripts/wikitrends/cache.py`
-**Tests:** `tests/test_cache.py`
+**Tests:** `skills/wiki-interest-trends/tests/test_cache.py`
 
 ## What it's for
 
@@ -44,7 +44,7 @@ without a "kind of data" parameter leaking into the cache layer.
 ## Why the clock is injected
 
 `Cache(clock=...)` defaults to `time.time` but tests pass a `FakeClock`
-(a callable with a mutable `.now`, see `tests/test_cache.py`). This lets TTL
+(a callable with a mutable `.now`, see `skills/wiki-interest-trends/tests/test_cache.py`). This lets TTL
 expiry tests advance time instantly and deterministically instead of
 calling real `time.sleep()` — the whole suite runs in ~0.08s.
 

@@ -1,8 +1,8 @@
 # pageviews.py — fetching + normalizing pageview counts
 
 **File:** `skills/wiki-interest-trends/scripts/wikitrends/pageviews.py`
-**Tests:** `tests/test_pageviews.py`
-**Fixtures:** `tests/fixtures/pageviews/*.json` — real recorded responses
+**Tests:** `skills/wiki-interest-trends/tests/test_pageviews.py`
+**Fixtures:** `skills/wiki-interest-trends/tests/fixtures/pageviews/*.json` — real recorded responses
 
 ## What it's for
 
@@ -37,7 +37,7 @@ broken URL". `fetch_per_article` checks for this specific `detail` string
 and raises `AppError(error_code="internal_request_error")` instead of
 quietly reporting `found=False` — that distinction matters because a
 silent `found=False` here would be a **wrong answer**, not a missing one.
-See `tests/fixtures/pageviews/per_article_invalid_route.json` (captured by
+See `skills/wiki-interest-trends/tests/fixtures/pageviews/per_article_invalid_route.json` (captured by
 deliberately mis-encoding a real request) vs.
 `per_article_not_found.json` (a genuine "this article doesn't exist").
 

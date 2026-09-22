@@ -245,3 +245,38 @@ hit the same wall. `README.md` was updated to lead with the CLI install
 method (proven reliable twice, above) and explicitly flag the GUI path as
 currently broken, with sources, rather than let users bounce off an
 undocumented dead end.
+
+## Stage 12b: audit against the Agent Skills spec + original task structure
+
+User asked directly whether the skill was implemented correctly against
+https://agentskills.io/specification and the original task's own required
+layout, before doing anything further. Audited rather than asserted:
+
+- `claude plugin validate .` — passes clean.
+- `tests/test_skill_md.py` (6 automated checks: name regex + directory
+  match, description length/no angle brackets, compatibility length, body
+  line budget, every referenced file/script actually exists) — all pass.
+- **Found a real gap**: the original task spec lists `requirements.txt`
+  and `tests/` as siblings of `SKILL.md` *inside* the skill directory;
+  Stage 12 had left both at the repo root as general "dev tooling" (a
+  reasonable-sounding call that turned out to be wrong for these two
+  specifically, since they're literally named in the task's own file
+  tree, unlike `docs/dev/`/`DEV_PLAN.md`/`evals/`, which aren't).
+
+Fixed (Stage 12b in `DEV_PLAN.md`): moved `tests/`, `conftest.py`,
+`requirements.txt` into `skills/wiki-interest-trends/`. Added `pytest.ini`
+at the repo root (`testpaths = skills/wiki-interest-trends/tests`) so the
+documented root-level `pytest` workflow is unaffected.
+
+**Verified twice, for real, not just by re-running the suite in place:**
+1. `pytest` from the repo root: 124 passed.
+2. `pytest` invoked from *inside* `skills/wiki-interest-trends/` directly: 124 passed.
+3. **The actual standalone-ness claim**: copied *only*
+   `skills/wiki-interest-trends/` into an empty temp directory (no `.git`,
+   no `docs/`, no `DEV_PLAN.md`, nothing else from this repo) and ran
+   `uv run scripts/resolve_topic.py --query "test" ...` from there —
+   real Wikidata data came back, proving the directory is genuinely
+   self-contained per the spec's "a directory containing, at minimum, a
+   SKILL.md file" bar, not just structurally similar to one.
+
+`claude plugin validate .` re-run after the move — still passes clean.

@@ -81,12 +81,11 @@ wiki-interest-trends/                 # repo root = dev workspace + plugin root
 │   ├── plugin.json                   # Stage 12: makes this repo a Claude Code plugin
 │   └── marketplace.json              # Stage 12: self-hosted single-plugin marketplace
 ├── LICENSE                           # MIT (Stage 12)
-├── SKILL.md                          # -> moved under skills/wiki-interest-trends/ (Stage 12)
 ├── README.md                         # reviewer-facing, written at Stage 10
 ├── DEV_PLAN.md                       # this file — internal only
-├── VERIFICATION.md                   # written at Stage 9, extended at Stage 12
-├── requirements.txt
-├── conftest.py                       # points pytest at skills/wiki-interest-trends/scripts
+├── VERIFICATION.md                   # written at Stage 9, extended at Stage 12+
+├── pytest.ini                        # Stage 12b: testpaths -> skills/wiki-interest-trends/tests,
+│                                      #   so `pytest` from the repo root still works
 ├── evals/evals.json
 ├── docs/dev/                         # internal-only: one short doc per feature/module
 │   ├── http-client.md
@@ -97,12 +96,13 @@ wiki-interest-trends/                 # repo root = dev workspace + plugin root
 │   ├── stats-and-trust.md
 │   ├── chart-and-analyze-cli.md
 │   └── report-pdf.md
-├── tests/                            # stays at repo root -- dev-only, like docs/dev/
-│   ├── fixtures/
-│   └── test_*.py
 └── skills/
-    └── wiki-interest-trends/         # <- the actual Agent-Skills-spec skill directory
+    └── wiki-interest-trends/         # <- the actual Agent-Skills-spec skill directory --
+        │                             #    self-contained: copy just this dir and it still
+        │                             #    works, tests included (verified: Stage 12b)
         ├── SKILL.md
+        ├── requirements.txt          # pip fallback; uv run needs neither this nor a venv
+        ├── conftest.py               # points pytest at ./scripts (sibling, once co-located again)
         ├── scripts/
         │   ├── resolve_topic.py      # CLI: topic/QID -> candidates -> per-language article titles
         │   ├── analyze.py            # CLI: QIDs/titles + langs + range -> analysis.json + short stdout JSON
@@ -122,18 +122,32 @@ wiki-interest-trends/                 # repo root = dev workspace + plugin root
         │   ├── methodology.md
         │   ├── api-notes.md
         │   └── interpreting.md
-        └── assets/fonts/DejaVuSans*.ttf
+        ├── assets/fonts/DejaVuSans*.ttf
+        └── tests/
+            ├── fixtures/
+            └── test_*.py
 ```
 
 **Why `skills/wiki-interest-trends/` and not the repo root, post-Stage-11:**
 Stage 12 (below) converts this repo into an installable Claude Code
 *plugin*, which expects its bundled skill(s) under `<plugin-root>/skills/<skill-name>/`.
-`docs/dev/`, `tests/`, `DEV_PLAN.md`, `VERIFICATION.md`, `evals/` stay at
-the repo root — same reasoning as always: they're dev/verification
-tooling, not part of what an agent reads to use the skill. Every internal
-path reference (tests' `sys.path`, docs' `**File:**` headers, README's
-commands) was updated accordingly; see the Stage 12 entry for the full
-list of what moved and why.
+`docs/dev/`, `DEV_PLAN.md`, `VERIFICATION.md`, `evals/` stay at the repo
+root — dev/verification tooling, not part of what an agent reads to use
+the skill, or of what the Agent Skills spec itself requires.
+
+**Stage 12b correction:** `tests/`, `conftest.py`, and `requirements.txt`
+were initially left at the repo root alongside the other dev tooling — but
+the *original task spec* explicitly lists `tests/` and `requirements.txt`
+as siblings of `SKILL.md` **inside** the skill directory itself, and the
+Agent Skills spec's own bar ("a directory containing, at minimum, a
+SKILL.md file") implies the whole thing should stand alone. Moved back in
+per that requirement, and verified for real: copied just
+`skills/wiki-interest-trends/` to an empty temp directory (no `.git`, no
+`docs/`, no `DEV_PLAN.md`) and both `uv run scripts/resolve_topic.py` and
+the full `pytest` suite ran correctly from there with zero other files
+present. `pytest.ini` at the repo root (`testpaths =
+skills/wiki-interest-trends/tests`) keeps the documented `pytest`-from-root
+workflow working unchanged.
 
 Rationale for the split inside `wikitrends/`: each file owns exactly one
 concern (HTTP transport vs. caching vs. domain lookups vs. stats vs.
@@ -272,6 +286,24 @@ verification fixed in the skill itself rather than worked around.
       (`plugin-marketplace-restructure`), merged to `main` once verified
       — see `VERIFICATION.md` for the real `/plugin marketplace add` +
       `/plugin install` test.
+- [x] **Stage 12b — move `tests/`, `conftest.py`, `requirements.txt` into
+      `skills/wiki-interest-trends/` too.** Requested explicitly after an
+      audit against the original task spec (which lists both as siblings
+      of `SKILL.md` inside the skill directory) and the Agent Skills spec's
+      own standalone-directory requirement -- Stage 12 had left them at
+      the repo root as general "dev tooling," which was defensible for
+      `docs/dev/`/`DEV_PLAN.md` but not really for the skill's own test
+      suite. Added `pytest.ini` at the repo root (`testpaths =
+      skills/wiki-interest-trends/tests`) so the documented
+      `pytest`-from-root workflow keeps working. Verified for real, not
+      just by re-running the existing suite in place: copied *only*
+      `skills/wiki-interest-trends/` to an empty temp directory (no
+      `.git`, no repo-root files at all) and both `uv run
+      scripts/resolve_topic.py` and the full `pytest` suite (124 tests)
+      passed from there, and separately confirmed `pytest` also passes
+      when invoked from inside the skill directory itself (not just via
+      the root's `pytest.ini`). `claude plugin validate .` still passes
+      clean after the move.
 
 ## Global constraints (from the spec, copied verbatim in spirit)
 

@@ -45,17 +45,22 @@ which is what an agent actually uses.)
 
 Each script is self-contained via [PEP 723](https://peps.python.org/pep-0723/)
 inline metadata — `uv run` handles the venv and pinned dependencies with no
-setup step. `requirements.txt` is kept in sync for a plain `pip install -r
-requirements.txt` fallback. No compiled binaries are vendored; the only
-non-code assets are two DejaVu Sans `.ttf` files (for Cyrillic-capable PDF
-text) copied from matplotlib's own bundle.
+setup step. `skills/wiki-interest-trends/requirements.txt` is kept in sync
+for a plain `pip install -r requirements.txt` fallback (it lives inside the
+skill directory itself, alongside `tests/` — both are part of the
+self-contained skill per the [Agent Skills spec](https://agentskills.io/specification),
+not just repo-level dev scaffolding). No compiled binaries are vendored;
+the only non-code assets are two DejaVu Sans `.ttf` files (for
+Cyrillic-capable PDF text) copied from matplotlib's own bundle.
 
 Run the test suite (124 tests, no network required — all fixtures are
-recorded real API responses):
+recorded real API responses). A `pytest.ini` at the repo root points
+`pytest` at the tests' real location so this works from either place:
 
 ```bash
-uv venv .venv && uv pip install -r requirements.txt --python .venv/bin/python
-.venv/bin/pytest
+uv venv .venv && uv pip install -r skills/wiki-interest-trends/requirements.txt --python .venv/bin/python
+.venv/bin/pytest                                   # from the repo root
+cd skills/wiki-interest-trends && ../../.venv/bin/pytest   # or from inside the skill itself
 ```
 
 ### Installing as a Claude Code skill

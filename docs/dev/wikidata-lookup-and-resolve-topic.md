@@ -1,8 +1,8 @@
 # wikidata.py + resolve_topic.py — topic → QID → article titles
 
 **Files:** `skills/wiki-interest-trends/scripts/wikitrends/wikidata.py`, `skills/wiki-interest-trends/scripts/resolve_topic.py`
-**Tests:** `tests/test_wikidata.py`, `tests/test_resolve_topic.py`
-**Fixtures:** `tests/fixtures/wikidata/*.json` — real recorded Wikidata API responses (see below)
+**Tests:** `skills/wiki-interest-trends/tests/test_wikidata.py`, `skills/wiki-interest-trends/tests/test_resolve_topic.py`
+**Fixtures:** `skills/wiki-interest-trends/tests/fixtures/wikidata/*.json` — real recorded Wikidata API responses (see below)
 
 ## What it's for
 
@@ -29,7 +29,7 @@ order — it does **not** try to guess which one is "right". That's a
 product requirement, not an oversight: `search "Меркурій"` (uk) really does
 return 5 genuinely different topics sharing that label — the planet, the
 chemical element, the Roman god, a US city, and a warship (see
-`tests/fixtures/wikidata/search_mercury_uk.json`, captured from a real
+`skills/wiki-interest-trends/tests/fixtures/wikidata/search_mercury_uk.json`, captured from a real
 request). Picking one silently would just be a coin flip dressed up as
 intelligence; surfacing all of them lets the agent read the descriptions
 and ask the user.
@@ -45,7 +45,7 @@ topic has no Polish article. `get_sitelinks` turns "key absent" into an
 explicit `ArticleLookup(status="missing")`, so nothing downstream has to
 special-case a missing dict key. An invalid QID gets a `200 OK` response
 with an `{"error": {...}}` body (not a 404 — confirmed with a real request,
-see `tests/fixtures/wikidata/sitelinks_invalid_qid.json`); `get_sitelinks`
+see `skills/wiki-interest-trends/tests/fixtures/wikidata/sitelinks_invalid_qid.json`); `get_sitelinks`
 turns that into `AppError(error_code="qid_not_found")`.
 
 **`resolve_redirect`** wraps MediaWiki's `action=query&redirects` to
@@ -99,7 +99,7 @@ ambiguous.
 
 ## Fixtures
 
-All `tests/fixtures/wikidata/*.json` are real API responses captured
+All `skills/wiki-interest-trends/tests/fixtures/wikidata/*.json` are real API responses captured
 during Stage 0/2 research (`curl` against `wikidata.org` /
 `{lang}.wikipedia.org`, saved verbatim), not hand-written — so the tests
 exercise the actual response shape (key names, nesting, the exact form of

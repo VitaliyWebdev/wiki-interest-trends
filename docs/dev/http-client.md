@@ -1,7 +1,7 @@
 # http.py — retrying JSON GET
 
 **File:** `skills/wiki-interest-trends/scripts/wikitrends/http.py`
-**Tests:** `tests/test_http.py` (fake transport, no network)
+**Tests:** `skills/wiki-interest-trends/tests/test_http.py` (fake transport, no network)
 
 ## What it's for
 
@@ -33,7 +33,7 @@ Status handling, deliberately different per bucket:
 
 `sleep` is an injected callable (defaults to `time.sleep`) specifically so
 tests can assert on backoff timing without a real test suite that takes
-seconds to run — see `tests/test_http.py::test_get_json_uses_exponential_backoff_across_retries`.
+seconds to run — see `skills/wiki-interest-trends/tests/test_http.py::test_get_json_uses_exponential_backoff_across_retries`.
 
 ## Why 404 is not an error
 

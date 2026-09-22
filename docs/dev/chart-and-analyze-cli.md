@@ -1,7 +1,7 @@
 # chart.py + analyze.py — putting it all together
 
 **Files:** `skills/wiki-interest-trends/scripts/wikitrends/chart.py`, `skills/wiki-interest-trends/scripts/analyze.py`
-**Tests:** `tests/test_chart.py`, `tests/test_analyze.py`
+**Tests:** `skills/wiki-interest-trends/tests/test_chart.py`, `skills/wiki-interest-trends/tests/test_analyze.py`
 
 ## `chart.py`
 
