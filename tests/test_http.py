@@ -4,32 +4,7 @@ import requests
 from wikitrends.errors import AppError
 from wikitrends.http import HttpResult, build_session, get_json
 
-
-class FakeResponse:
-    def __init__(self, status_code, json_data=None, json_raises=False):
-        self.status_code = status_code
-        self._json_data = json_data
-        self._json_raises = json_raises
-
-    def json(self):
-        if self._json_raises:
-            raise ValueError("response body is not valid JSON")
-        return self._json_data
-
-
-class FakeSession:
-    """Queues canned responses/exceptions, one per call to .get()."""
-
-    def __init__(self, responses):
-        self._responses = list(responses)
-        self.calls = []
-
-    def get(self, url):
-        self.calls.append(url)
-        item = self._responses.pop(0)
-        if isinstance(item, Exception):
-            raise item
-        return item
+from fakes import FakeResponse, FakeSession
 
 
 @pytest.fixture
