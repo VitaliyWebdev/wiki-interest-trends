@@ -1,7 +1,7 @@
 ---
 name: wiki-interest-trends
 description: Analyzes interest in a topic over time using Wikipedia pageview statistics across language editions -- compares growth, trend significance, and a confidence ("trust") level between languages or topics, and can produce a one-page PDF report with a chart. Use when researching audience/market interest for a product idea, deciding which languages or countries to localize or launch into, checking whether interest in a topic is growing or declining, comparing topic popularity across language editions, or preparing a founder/stakeholder-facing report backed by real data. Not for measuring purchase intent, ad-hoc trivia lookups, or real-time/breaking-news monitoring. Ukrainian keywords for triggering: інтерес до теми, тренди Wikipedia, чи росте попит, вибір мов для локалізації, порівняння ринків, аналіз популярності, перегляди статей, довіра до тренду.
-compatibility: Requires Python 3.10+, uv, and network access to wikimedia.org and wikidata.org.
+compatibility: Requires uv (auto-installed by this skill if missing; uv manages its own Python, no separate Python install needed) and network access to wikimedia.org and wikidata.org.
 metadata:
   version: "1.0"
 ---
@@ -42,6 +42,21 @@ this skill's design.
   level will say so; don't override it with your own judgment.
 
 ## Workflow
+
+**Step 0 — make sure `uv` is available** (`command -v uv`). If it isn't,
+install it yourself before anything else -- this is a normal, user-scoped
+install (no admin/root, writes only to `~/.local/bin`, never touches any
+system Python), not something to ask the user to do by hand:
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh   # macOS/Linux
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"   # Windows
+```
+If `uv` still isn't on `PATH` right after installing (new shells pick it
+up automatically, the current one might not), call it as `~/.local/bin/uv`
+for the rest of this session. **Python itself never needs separate
+installation** -- every script below declares its required Python version
+via PEP 723 inline metadata, and `uv run` downloads and manages a matching
+interpreter on its own the first time it's needed.
 
 **Do not `cd` into this skill's own directory.** `analyze.py`/`report.py`
 write their output (`wikitrends-out/<run-id>/...`) relative to *your*

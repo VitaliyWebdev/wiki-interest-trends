@@ -12,7 +12,16 @@ see [Why the architecture is this shape](#why-the-architecture-is-this-shape).
 
 ## Install & run
 
-Requires Python 3.10+ and [uv](https://docs.astral.sh/uv/).
+Requires [uv](https://docs.astral.sh/uv/) — that's it. You do **not** need
+Python pre-installed separately: every script declares its required
+version via [PEP 723](https://peps.python.org/pep-0723/) inline metadata,
+and `uv run` downloads and manages a matching interpreter on its own the
+first time it's needed. If `uv` itself isn't installed, the skill installs
+it automatically when used through an agent (see `SKILL.md`'s "Step 0") —
+or install it yourself once, no admin rights needed:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh   # macOS/Linux
+```
 
 ```bash
 git clone https://github.com/VitaliyWebdev/wiki-interest-trends.git
@@ -104,9 +113,11 @@ ln -s /tmp/wit-src/skills/wiki-interest-trends ~/.claude/skills/wiki-interest-tr
 ln -s /path/to/your/wiki-interest-trends/skills/wiki-interest-trends ~/.claude/skills/wiki-interest-trends
 ```
 
-Either way, `uv` and Python 3.10+ still need to be available locally —
-neither install method installs those for you; they only place the skill's
-files where Claude Code looks for them.
+Either way, `uv` still needs to be available locally (or the agent
+installs it on first use, per `SKILL.md`'s Step 0) — neither install
+method installs it for you; they only place the skill's files where
+Claude Code looks for them. Python itself is never a separate
+requirement, either way (see above).
 
 ## Examples
 
