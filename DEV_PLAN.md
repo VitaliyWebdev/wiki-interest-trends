@@ -183,8 +183,13 @@ without a green light on the previous one.
       HTTP call but imported a module that did), and trust reasons being
       hardcoded English inside an otherwise-Ukrainian report (fixed by
       making `trust.Reason` code+params with uk/en render templates).
-- [ ] **Stage 7 — `SKILL.md` + `references/`**: methodology.md,
-      api-notes.md (formalized from Stage 0), interpreting.md.
+- [x] **Stage 7 — `SKILL.md` + `references/`**: methodology.md,
+      api-notes.md (formalized from Stage 0/3), interpreting.md.
+      Frontmatter verified against the live `agentskills.io/specification`
+      (fetched, not recalled from training) -- name/description/
+      compatibility constraints, 165-line body (well under the ~300 target).
+      `tests/test_skill_md.py` added as an automated stand-in for
+      `skills-ref validate`.
 - [ ] **Stage 8 — full offline test suite**: fixtures for all three
       scripts, 404/missing-language/ambiguous-topic/redirect cases, spot
       check 2-3 articles against pageviews.wmcloud.org.
