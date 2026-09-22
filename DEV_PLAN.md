@@ -144,10 +144,17 @@ without a green light on the previous one.
       fixtures, no live calls in the test suite. Smoke-tested for real via
       `uv run scripts/resolve_topic.py` against live Wikidata (not just
       fixtures) before committing.
-- [ ] **Stage 3 — pageviews fetching**: `pageviews.py` (per-article,
-      aggregate, redirects-of, title encoding, 404 handling) wired into
-      `analyze.py` up to "I have raw + normalized numbers", no stats yet.
-      Tests against recorded fixtures.
+- [x] **Stage 3 — pageviews fetching**: `pageviews.py` (per-article,
+      aggregate, redirects-of, title encoding, 404 handling, normalization).
+      13 new tests (64 total), all against real recorded fixtures. Two real
+      gotchas confirmed against the live API and documented in
+      `docs/dev/pageviews.md`: unescaped `/` in a title → false "no data"
+      404; monthly granularity gives a *partial* sum for the last month
+      unless `end` is that month's actual last day. Note: this stage built
+      `pageviews.py` itself only, not `analyze.py` — the CLI file and the
+      `--include-redirects` summation logic are Stage 5 (chart+CLI wiring),
+      so `analyze.py` doesn't exist as a file yet. Smoke-tested live via a
+      throwaway script against real Wikidata/Wikimedia before committing.
 - [ ] **Stage 4 — stats + trust**: `stats.py` (YoY, Theil-Sen/log,
       Mann-Kendall, peak concentration, seasonality) and `trust.py`
       (deterministic high/medium/low + human-readable reasons). Pure
