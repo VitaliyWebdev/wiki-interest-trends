@@ -1,7 +1,161 @@
 # wiki-interest-trends
 
-An Agent Skill that lets an AI agent research topic interest via Wikipedia pageviews
-across language editions, chart trends, and produce a one-page PDF report for B2C
-product founders.
+An [Agent Skill](https://agentskills.io/specification) that lets an AI
+agent (designed for cheap/fast models like Claude Haiku 4.5) research
+topic interest via Wikipedia pageviews across language editions: growth,
+trend significance, a deterministic confidence level, and an optional
+one-page PDF report — for B2C product founders deciding what to build or
+where to localize.
 
-Status: setup in progress — see task spec for architecture and requirements.
+All statistics run in tested Python, not in the agent's own reasoning —
+see [Why the architecture is this shape](#why-the-architecture-is-this-shape).
+
+## Install & run
+
+Requires Python 3.10+ and [uv](https://docs.astral.sh/uv/).
+
+```bash
+git clone <this repo>
+cd wiki-interest-trends
+
+# Find a topic's Wikidata QID and its article title per language
+uv run scripts/resolve_topic.py --query "інтервальне голодування" --query-lang uk --langs pl,cs
+
+# Analyze growth/trend/trust across languages, over the last 24 complete months
+uv run scripts/analyze.py --qids Q1666254 --langs pl,cs,uk --last 24m
+
+# Turn that into a one-page PDF (path comes from analyze.py's own output)
+uv run scripts/report.py --analysis-json wikitrends-out/<run-id>/analysis.json --lang uk \
+  --summary "Your conclusion, grounded in the numbers above."
+```
+
+Each script is self-contained via [PEP 723](https://peps.python.org/pep-0723/)
+inline metadata — `uv run` handles the venv and pinned dependencies with no
+setup step. `requirements.txt` is kept in sync for a plain `pip install -r
+requirements.txt` fallback. No compiled binaries are vendored; the only
+non-code assets are two DejaVu Sans `.ttf` files (for Cyrillic-capable PDF
+text) copied from matplotlib's own bundle.
+
+Run the test suite (124 tests, no network required — all fixtures are
+recorded real API responses):
+
+```bash
+uv venv .venv && uv pip install -r requirements.txt --python .venv/bin/python
+.venv/bin/pytest
+```
+
+To actually install this as a Claude Code skill, symlink or copy this
+directory into a project's `.claude/skills/wiki-interest-trends/`.
+
+## Examples
+
+See [SKILL.md](SKILL.md#examples) for the three primary example queries
+this skill is designed around (cross-language comparison, single-topic
+trust check, cross-topic comparison + report), each with the exact
+commands an agent runs.
+
+## Why the architecture is this shape
+
+The whole point: Haiku calls 2-3 scripts with simple flags and reads a
+short JSON summary. It never computes a percentage, a p-value, or a trust
+level itself. That single decision drives everything else:
+
+- **Correctness lives in tested Python, not agent reasoning.** 124 tests,
+  most against real recorded API fixtures (not hand-written mocks), plus
+  synthetic series with *mathematically known* correct answers for the
+  statistics (e.g. Theil-Sen recovers an exact `ln(2)` slope even with a
+  1,000,000-view outlier injected — see
+  [docs/dev/stats-and-trust.md](docs/dev/stats-and-trust.md)).
+- **One shared library, `scripts/wikitrends/`**, not three copies of HTTP/
+  cache/error-handling logic — `resolve_topic.py`, `analyze.py`, and
+  `report.py` each stay a thin CLI layer over it. See
+  [DEV_PLAN.md](DEV_PLAN.md)'s file structure section for the module
+  breakdown and rationale.
+- **The trust level is a deterministic rule in code** (concern-count over
+  5 named factors: history length, view volume, trend significance,
+  raw-vs-normalized agreement, peak concentration), never a judgment call
+  handed to the calling model. Every level comes with human-readable
+  reasons, localized to the report's own language — not just a bare label.
+  Full rule: [references/methodology.md](references/methodology.md).
+- **Real API research over documentation-from-memory**, throughout. Two
+  concrete gotchas that only showed up in actual requests, not the docs:
+  an unescaped `/` in an article title causes a 404 that looks exactly
+  like "no data" but means the URL is malformed; monthly-granularity
+  pageviews return a *partial* sum for a month `end` falls mid-way
+  through, not the full month. Both documented with the real requests that
+  found them in [references/api-notes.md](references/api-notes.md).
+- **Every stage was verified by actually running it**, not just passing
+  its own tests — live smoke tests via `uv run` after each stage, a
+  rendered PDF actually looked at (which is how two real bugs were caught
+  that every unit test missed — see
+  [docs/dev/report-pdf.md](docs/dev/report-pdf.md)), numbers spot-checked
+  against the independent [pageviews.wmcloud.org](https://pageviews.wmcloud.org)
+  tool, and all 8 eval scenarios run for real against `claude --model
+  haiku` in a scratch workspace with this skill installed as an actual
+  discoverable project skill. Full log: [VERIFICATION.md](VERIFICATION.md).
+
+`docs/dev/*.md` has one focused write-up per module (what it's for, its
+contract, the non-obvious decisions and gotchas found building it) —
+that's the fastest way into the actual implementation reasoning;
+`DEV_PLAN.md` is the stage-by-stage build log this was developed against.
+
+## Known limitations
+
+- **DejaVu Sans has no CJK glyphs.** A chart legend entry for a Chinese/
+  Japanese/Korean article title renders as missing-glyph boxes (cosmetic
+  only — doesn't affect the underlying numbers or the JSON contract).
+  Found running a real eval against `uk,pl,es,ja,ru,pt,de`. A CJK-capable
+  font is several MB, disproportionate to bundle for this.
+- **Year-over-year growth and seasonality only compute at monthly
+  granularity** (`--granularity daily` gets trend/peak-share numbers but
+  not those two) — both assume one data point per calendar month.
+- **Trust-level thresholds** (30/100 views-per-month, 0.35/0.5 peak
+  share, etc.) are reasoned defaults, not calibrated against a labeled
+  dataset — none exists for this task. Real usage is the place to
+  sanity-check them; they're named constants in `scripts/wikitrends/trust.py`.
+- **`--titles` mode is single-language by design** (compare several
+  topics within one edition); cross-language comparison always goes
+  through `--qids`. See `docs/dev/chart-and-analyze-cli.md` for the
+  reasoning and when to revisit it.
+
+## How to develop further
+
+**Larger scale.** The per-request REST API is fine for a handful of
+topics/languages per query but doesn't scale to, say, "scan the top 500
+articles of every language edition." For that: switch to Wikimedia's bulk
+[pageview dumps](https://dumps.wikimedia.org/other/pageviews/) instead of
+per-article API calls, parallelize fetches (currently sequential — fine at
+this volume, a bottleneck at high volume), and move the cache from SQLite
+to Parquet files queried with DuckDB once a single run's data stops fitting
+comfortably in a key-value cache.
+
+**Deeper research.** Right now each topic is one Wikidata QID and its
+per-language sitelinks. Wikidata's link graph and category structure could
+cluster *related* articles automatically (e.g. everything linked to/from a
+topic, or sharing its categories) to discover adjacent topics worth
+checking, instead of the agent having to name each one. The trend
+detection (Theil-Sen + Mann-Kendall) is solid for "is there a trend" but
+doesn't decompose seasonality from trend explicitly — an STL decomposition
+would let the report separate "this always spikes every December" from
+the actual underlying trend line, rather than just flagging
+`seasonality_ratio` as a caveat. Actual forecasting (even a simple one)
+would turn "is it growing" into "where might it be in 6 months," with
+appropriately wide uncertainty given how noisy this signal already is.
+`topviews`-style "what are the top articles in this language edition
+right now" could seed new topic ideas rather than requiring the founder to
+already have one in mind.
+
+**Other signal sources.** Wikipedia pageviews are one interest signal
+among many — Google Trends, App Store/Play Store category rankings,
+Reddit/forum mention volume, or job-posting keyword frequency would each
+add a different, differently-biased view of the same underlying question,
+and cross-referencing them would catch cases where Wikipedia's audience
+(people who read encyclopedic articles) doesn't represent the actual
+target market well.
+
+## License
+
+Code: no license file added (add one before any public distribution).
+`assets/fonts/LICENSE.txt` carries the DejaVu Sans font license
+(Bitstream Vera Fonts Copyright + Arev Fonts Copyright, both permissive),
+extracted from the font's own embedded metadata.
