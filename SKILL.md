@@ -43,6 +43,20 @@ this skill's design.
 
 ## Workflow
 
+**Do not `cd` into this skill's own directory.** `analyze.py`/`report.py`
+write their output (`wikitrends-out/<run-id>/...`) relative to *your*
+current working directory on purpose -- the skill directory may be
+read-only, and outputs belong with the user's own work, not inside the
+skill's install location. Instead, prefix every command below with this
+skill's own base directory (the "Base directory for this skill" path shown
+when this skill loads), keeping your shell wherever it already is:
+```
+uv run <base-directory>/scripts/resolve_topic.py --query ...
+```
+(A first attempt at just `scripts/resolve_topic.py` with no prefix will
+fail with "No such file or directory" unless your shell happens to already
+be inside the base directory -- use the full path from the start.)
+
 1. **Resolve the topic**, unless you already have its Wikidata QID (e.g.
    from an earlier turn in this conversation):
    `uv run scripts/resolve_topic.py --query "<topic>" --query-lang <lang> --langs <lang1,lang2,...>`
@@ -56,13 +70,27 @@ this skill's design.
    - A language with no article for that topic comes back as
      `{"status": "missing"}` in `articles` -- that's a normal, expected
      result, not an error.
+   - **If the user's question doesn't name specific languages** (e.g.
+     "compare interest across language editions" with no list given),
+     **pick a reasonable, diverse default set yourself and proceed** --
+     don't stop to ask which languages first. This is a normal scoping
+     judgment call for you to make, unlike genuine topic ambiguity (the
+     "Меркурій" case above, where the *topic itself* could mean several
+     unrelated things) -- that one you always ask about; which languages
+     to check, you don't.
 2. **Analyze** using the QID(s) (or titles, for a repeat query -- see
    below):
    `uv run scripts/analyze.py --qids <QID[,QID...]> --langs <lang1,lang2,...> --last 24m`
 3. **Answer the user** using only the numbers in the JSON output (rules
    below).
-4. **Report**, only if the user asked for a document/PDF/deck to share:
+4. **Report**, if the user's own words ask for a "report"/"звіт"/"document"/
+   "PDF"/"deck", or anything to hand off or share with someone else --
+   generate the actual file, don't treat a well-formatted chat answer as a
+   substitute:
    `uv run scripts/report.py --analysis-json <path from step 2> --lang <user's language> --summary "<your conclusion>"`
+   Skip this step only when the user just asked a direct question in
+   passing ("is interest growing?") with no indication they want something
+   to share.
 
 ## Examples
 

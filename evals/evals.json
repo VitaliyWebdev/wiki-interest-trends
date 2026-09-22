@@ -1,0 +1,88 @@
+{
+  "description": "Manual eval scenarios for wiki-interest-trends, run via `claude --model haiku` against a workspace where this skill is installed under .claude/skills/. Not an automated test suite -- results and fixes are logged by hand in VERIFICATION.md, per the task spec.",
+  "scenarios": [
+    {
+      "id": "compare_langs",
+      "type": "primary example (task spec query 1)",
+      "query": "Порівняй зростання інтересу до інтервального голодування в польськомовній та чеськомовній Wikipedia за останні два роки.",
+      "checks": [
+        "calls resolve_topic.py to get the QID before analyzing",
+        "calls analyze.py with --qids and --langs pl,cs (or includes uk incidentally)",
+        "reports growth numbers per language, not just one blended number",
+        "states a trust level with a reason, not just a bare percentage",
+        "notices and mentions if either language is missing an article"
+      ]
+    },
+    {
+      "id": "single_topic_trust",
+      "type": "primary example (task spec query 2)",
+      "query": "Ми думаємо додати курс з астрономії. Чи зростає інтерес до цієї теми в україномовній Wikipedia і наскільки цьому зростанню можна довіряти?",
+      "checks": [
+        "resolves 'астрономія' to a QID (or asks if the search is ambiguous)",
+        "analyzes uk only, doesn't over-fetch unrequested languages",
+        "explicitly states the trust level AND at least one reason for it",
+        "does not phrase the answer as 'there is demand for an astronomy course' (interest != willingness to pay)"
+      ]
+    },
+    {
+      "id": "compare_topics_report",
+      "type": "primary example (task spec query 3)",
+      "query": "Ми створюємо застосунок для вивчення мов. Порівняй інтерес до вивчення англійської у вибраних мовних розділах і підготуй короткий звіт: які аудиторії варто дослідити наступними й чому?",
+      "checks": [
+        "picks a reasonable set of languages itself (the query doesn't name any)",
+        "produces an actual report.pdf via report.py, not just a chat answer",
+        "the report's --summary/--question are the agent's own words, not invented numbers",
+        "the 'which audiences to explore next' recommendation is grounded in the returned numbers (e.g. missing languages, highest growth), not generic advice"
+      ]
+    },
+    {
+      "id": "ambiguous_topic",
+      "type": "edge case: ambiguity",
+      "query": "Чи зростає інтерес до Меркурія в українській Wikipedia?",
+      "checks": [
+        "resolve_topic.py returns multiple substantially different candidates (planet/element/Roman god/city/ship)",
+        "the agent STOPS and asks the user which one they meant, instead of picking one silently",
+        "does not proceed to analyze.py before getting clarification"
+      ]
+    },
+    {
+      "id": "missing_language",
+      "type": "edge case: language without an article",
+      "query": "Наскільки популярна тема інтервального голодування в польській Wikipedia?",
+      "checks": [
+        "does not error out or crash when the language has no article",
+        "clearly tells the user there's no Polish article on this topic, as a real finding",
+        "does not fabricate a growth number for a language with no data"
+      ]
+    },
+    {
+      "id": "low_traffic_niche_topic",
+      "type": "edge case: low volume / low trust",
+      "query": "Чи росте інтерес до теми 'теорема Шпернера' в українській Wikipedia?",
+      "checks": [
+        "if trust comes back low/medium, says so plainly and explains why (short history and/or low view volume)",
+        "does not present a low-trust number with the same confidence as a high-trust one"
+      ]
+    },
+    {
+      "id": "news_spike_topic",
+      "type": "edge case: peak-driven trend",
+      "query": "Чи стабільно зростає інтерес до сонячного затемнення в англомовній Wikipedia, чи це просто сплеск?",
+      "checks": [
+        "checks peak_share_top2 / the trust reasons for spike-driven concentration",
+        "if concentrated in 1-2 months, explicitly says this may be event-driven rather than sustained growth"
+      ]
+    },
+    {
+      "id": "repeat_query_clarification",
+      "type": "edge case: fast follow-up, multi-turn",
+      "query_turn_1": "Чи зростає інтерес до інтервального голодування в українській Wikipedia за останні 2 роки?",
+      "query_turn_2": "А тепер додай ще польську та чеську мови до порівняння.",
+      "checks": [
+        "turn 2 does NOT call resolve_topic.py again -- reuses the QID already known from turn 1",
+        "turn 2 goes straight to analyze.py with the expanded --langs",
+        "turn 2 completes with noticeably fewer tool calls than turn 1 (cache + no re-resolution)"
+      ]
+    }
+  ]
+}

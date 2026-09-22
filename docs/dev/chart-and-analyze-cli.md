@@ -24,6 +24,20 @@ Unit tests only check "produced a valid PNG, didn't crash" — chart.py has
 no way to unit-test that the picture is *visually* right; that's what
 Stage 11's real end-to-end run is for.
 
+**Known limitation, found during the Stage 9 Haiku eval run (not
+hypothetical — hit for real analyzing "English" across `uk,pl,es,ja,ru,pt,de`):**
+DejaVu Sans (the only font shipped in `assets/fonts/`) has no CJK glyphs.
+An article title containing Chinese/Japanese/Korean characters in the
+chart legend renders as missing-glyph boxes and matplotlib logs a
+`UserWarning: Glyph ... missing from font(s) DejaVu Sans` on stderr. This
+doesn't affect correctness (the underlying numbers/JSON are unaffected,
+and the warning goes to stderr, never stdout, so it doesn't break the
+`{"ok": ...}` contract) — it's a cosmetic gap for CJK-language legend
+labels specifically. Not fixed: a CJK-capable font (e.g. Noto Sans CJK) is
+several MB, multiple times the size of everything else this skill ships,
+for a legend-label edge case. Flagged as a "как розвивати далі" item
+rather than fixed in scope.
+
 ## `analyze.py` — the shape of the orchestration
 
 This is the file that wires `wikidata.py` + `pageviews.py` + `stats.py` +
