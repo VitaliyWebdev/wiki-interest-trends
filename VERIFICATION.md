@@ -124,3 +124,33 @@ in scope for a legend-label edge case.
 (`low_traffic_niche_topic`) validated a different, already-covered path
 instead of the intended one because of a topic-selection accident, not a
 skill defect.
+
+## Stage 11: real end-to-end run
+
+Everything below was actually executed, not just planned:
+
+- **All 3 scripts run for real via `uv run`**, using only each script's
+  own PEP 723 metadata (not the dev venv) — done repeatedly through
+  Stages 2/3/5/6 as each was built, and again for all 3 primary example
+  queries via the real Haiku eval transcripts in Stage 9 (`compare_langs`,
+  `single_topic_trust`, `compare_topics_report` above), which shows the
+  exact commands an actual agent runs, not a hand-picked demo invocation.
+- **Numbers cross-checked against pageviews.wmcloud.org** — done in
+  Stage 8 (see above): 2 articles + 1 project total, all 3 exact matches.
+- **Cache-hit path verified live**, not just by unit test call-counting:
+  ran `analyze.py --qids Q1666254 --langs uk,cs --last 24m` three times
+  against a fresh, empty cache directory. Run 1 (cold): 1.04s wall time,
+  writes to `cache.sqlite3`. Runs 2 and 3 (warm): 0.34s wall time, and —
+  the decisive check — `cache.sqlite3`'s mtime and byte size were
+  **identical** before and after run 3, meaning zero writes happened,
+  meaning zero cache misses, meaning zero network calls on a pure repeat
+  query. (The unit tests already assert this via fake-session call counts
+  per module; this is the same behavior confirmed against the real
+  network and the real filesystem.)
+- **Full eval suite run for real on Haiku 4.5** — Stage 9, above, all 8
+  scenarios, 2 rounds (pre- and post-fix), with real fixes made to
+  `SKILL.md` based on what actually happened, not adjustments to the
+  evals to match whatever came out.
+
+No new issues turned up in this final pass beyond what Stages 8/9 already
+found and fixed.
