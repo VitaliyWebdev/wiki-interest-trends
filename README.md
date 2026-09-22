@@ -44,8 +44,30 @@ uv venv .venv && uv pip install -r requirements.txt --python .venv/bin/python
 .venv/bin/pytest
 ```
 
-To actually install this as a Claude Code skill, symlink or copy this
-directory into a project's `.claude/skills/wiki-interest-trends/`.
+### Installing as a Claude Code skill
+
+Claude Code doesn't have an "install from GitHub" button — a skill is just
+a directory with a `SKILL.md` at its root (this repo already qualifies as-is,
+no plugin manifest needed) placed somewhere Claude Code looks for skills:
+
+```bash
+# Personal — available in every project on this machine
+git clone https://github.com/VitaliyWebdev/wiki-interest-trends.git ~/.claude/skills/wiki-interest-trends
+
+# Project-scoped — available only inside one project
+git clone https://github.com/VitaliyWebdev/wiki-interest-trends.git <your-project>/.claude/skills/wiki-interest-trends
+```
+
+If you already have this repo cloned elsewhere and want Claude Code to
+always see your working copy (so local edits/commits show up without
+re-cloning), symlink instead of cloning again:
+
+```bash
+ln -s /path/to/your/wiki-interest-trends ~/.claude/skills/wiki-interest-trends
+```
+
+Run `/skills` in Claude Code to confirm it's picked up, and toggle it on
+if needed.
 
 ## Examples
 
