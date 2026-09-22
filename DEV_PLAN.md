@@ -190,9 +190,13 @@ without a green light on the previous one.
       compatibility constraints, 165-line body (well under the ~300 target).
       `tests/test_skill_md.py` added as an automated stand-in for
       `skills-ref validate`.
-- [ ] **Stage 8 — full offline test suite**: fixtures for all three
-      scripts, 404/missing-language/ambiguous-topic/redirect cases, spot
-      check 2-3 articles against pageviews.wmcloud.org.
+- [x] **Stage 8 — full offline test suite**: fixtures for all three
+      scripts, 404/missing-language/ambiguous-topic/redirect cases (mostly
+      landed incrementally in Stages 2/3/5; filled the one real gap found —
+      `--include-redirects` summation in `analyze.py` had no direct test).
+      124 tests total. Spot-checked 2 articles + 1 project total against
+      pageviews.wmcloud.org live in the browser — all three exact matches,
+      logged in `VERIFICATION.md`.
 - [ ] **Stage 9 — evals**: `evals/evals.json` (3 sample queries + edge
       cases from the spec), run for real on Haiku 4.5, fix `SKILL.md`/CLI
       contracts based on failures (not the eval), `VERIFICATION.md` log.
