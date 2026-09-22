@@ -1,0 +1,165 @@
+# Dev plan — wiki-interest-trends
+
+Internal working notes. Not part of the shipped skill (the skill itself is
+`SKILL.md` + `scripts/` + `references/` + `assets/` + `tests/`). Kept here,
+committed, so progress and decisions survive between sessions. The
+reviewer-facing `README.md` gets written for real at Stage 10 — until then
+it stays a stub.
+
+## Goal
+
+Agent Skill that lets a Haiku-4.5-driven agent answer "is interest in topic
+X growing, in which language editions, how confident should we be" using
+Wikipedia pageviews, and optionally produce a 1-page PDF report.
+
+## Why the architecture is shaped this way
+
+All logic (HTTP, caching, stats, trust scoring, plotting, PDF) lives in
+Python that runs via `uv run` — **not** in the agent's reasoning. Haiku only
+calls 2-3 scripts with simple flags and reads short JSON. So the correctness
+bar for the Python is much higher than for a typical internal script: it's
+covered by tests against recorded fixtures, not by the agent noticing when
+numbers look wrong.
+
+Reusability requirement: `resolve_topic.py`, `analyze.py`, `report.py` all
+need the same HTTP client (retries, User-Agent, 404-vs-error distinction),
+the same cache, and the same "small JSON to stdout, everything else to a
+file" contract. That shared behavior lives in one package
+(`scripts/wikitrends/`) instead of being copy-pasted per script, so a fix
+(say, to backoff behavior) only happens once.
+
+## Stage 0 — API research (done)
+
+Real requests made against production endpoints (not from memory):
+
+- `wbsearchentities` (wikidata.org) — search by label in any language,
+  returns candidates with id/label/description. Confirmed via "інтервальне
+  голодування" → `Q1666254`.
+- `wbgetentities` with `props=sitelinks` — a language with no article simply
+  has **no key** for that wiki (e.g. no `plwiki` key at all) — there is no
+  explicit "missing" flag from the API, we synthesize one.
+- Per-article pageviews
+  (`/metrics/pageviews/per-article/{project}/all-access/user/{article}/{granularity}/{start}/{end}`)
+  — works, returns real monthly counts. Article title must be
+  space→underscore then percent-encoded; passing raw UTF-8 with a literal
+  space produces a `400 Invalid HTTP Request` from the edge, not a clean
+  error.
+- No data / no such article → **404 with a JSON body**
+  (`{"status":404,"title":"Not Found",...}`), not a network-level failure —
+  must be handled as a normal "no data" case per (article, language) pair,
+  not raised as an error.
+- Aggregate pageviews
+  (`/metrics/pageviews/aggregate/{project}/all-access/user/{granularity}/{start}/{end}`)
+  — works, gives project-wide totals for normalization.
+- Redirect resolution: MediaWiki `action=query&redirects` resolves a title
+  to its canonical form. Reverse lookup (`prop=redirects`) lists the
+  redirects pointing at a canonical title, for `--include-redirects`; it
+  paginates (`rdcontinue`) for popular articles with many redirects.
+- No explicit rate-limit headers observed; responses do carry
+  `cache-control: s-maxage=14400` (4h) from Wikimedia's own edge. No
+  429/5xx seen during testing — backoff logic will be written defensively
+  per the task spec (exponential backoff, since we can't rely on
+  `Retry-After` being present) rather than tuned against an observed case.
+
+Full writeup with example requests/responses goes in
+`references/api-notes.md` at Stage 7 — this section is the working notes
+version.
+
+## File structure
+
+```
+wiki-interest-trends/
+├── SKILL.md
+├── README.md                  # stub now, real deliverable at Stage 10
+├── DEV_PLAN.md                 # this file — internal only
+├── requirements.txt
+├── scripts/
+│   ├── resolve_topic.py        # CLI: topic/QID -> candidates -> per-language article titles
+│   ├── analyze.py              # CLI: QIDs/titles + langs + range -> analysis.json + short stdout JSON
+│   ├── report.py                # CLI: analysis.json -> 1-page PDF
+│   └── wikitrends/              # shared library, no CLI code here
+│       ├── __init__.py
+│       ├── http.py              # requests session, UA, retry/backoff, 404-vs-error split
+│       ├── cache.py             # SQLite cache keyed by (endpoint, params), TTL for current month
+│       ├── wikidata.py          # wbsearchentities / wbgetentities / sitelinks helpers
+│       ├── pageviews.py         # per-article / aggregate / redirects-of fetchers
+│       ├── stats.py             # YoY, Theil-Sen + Mann-Kendall, peak share, seasonality
+│       ├── trust.py             # deterministic high/medium/low rule + reasons
+│       ├── chart.py             # matplotlib PNG rendering
+│       ├── errors.py            # AppError -> {"ok": false, "error_code", "message", "hint"} contract
+│       └── cli.py               # --help formatting, output-dir/run-id helpers shared by all 3 scripts
+├── references/
+│   ├── methodology.md
+│   ├── api-notes.md
+│   └── interpreting.md
+├── assets/fonts/DejaVuSans*.ttf
+├── evals/evals.json
+├── VERIFICATION.md              # written at Stage 9
+└── tests/
+    ├── fixtures/
+    └── test_*.py
+```
+
+Rationale for the split inside `wikitrends/`: each file owns exactly one
+concern (HTTP transport vs. caching vs. domain lookups vs. stats vs.
+presentation) so a bug in, say, the trust rule can be fixed and tested
+without touching HTTP or caching code, and `analyze.py` and
+`resolve_topic.py` both reuse `http.py`/`cache.py`/`wikidata.py` instead of
+duplicating request logic.
+
+## Stages
+
+Each stage ends in a working, independently-testable piece, committed and
+pushed. We check in after each one before moving on — no stage starts
+without a green light on the previous one.
+
+- [x] **Stage 0 — API research** (above)
+- [ ] **Stage 1 — `wikitrends` plumbing**: `http.py` (UA, retry/backoff,
+      404 split), `cache.py` (SQLite, short TTL for current incomplete
+      month), `errors.py` (error-JSON contract). Unit tests with a fake
+      transport (no real network in tests).
+- [ ] **Stage 2 — `resolve_topic.py`**: wikidata.py + the CLI itself.
+      Ambiguity detection (multiple substantially different candidates →
+      surfaced, not guessed), missing-language handling. Tests against
+      recorded fixtures.
+- [ ] **Stage 3 — pageviews fetching**: `pageviews.py` (per-article,
+      aggregate, redirects-of, title encoding, 404 handling) wired into
+      `analyze.py` up to "I have raw + normalized numbers", no stats yet.
+      Tests against recorded fixtures.
+- [ ] **Stage 4 — stats + trust**: `stats.py` (YoY, Theil-Sen/log,
+      Mann-Kendall, peak concentration, seasonality) and `trust.py`
+      (deterministic high/medium/low + human-readable reasons). Pure
+      functions, heavily unit-tested with synthetic series (known slopes,
+      known peaks) since this is the part an agent can't sanity-check.
+- [ ] **Stage 5 — `analyze.py` finished**: chart.py (PNG) + CLI wiring +
+      `analysis.json` + compact stdout JSON contract. `--help` with
+      examples.
+- [ ] **Stage 6 — `report.py`**: 1-page PDF via reportlab + DejaVu fonts,
+      summary passed in by the agent, limitations/trust level auto-filled.
+      Test asserts page count == 1.
+- [ ] **Stage 7 — `SKILL.md` + `references/`**: methodology.md,
+      api-notes.md (formalized from Stage 0), interpreting.md.
+- [ ] **Stage 8 — full offline test suite**: fixtures for all three
+      scripts, 404/missing-language/ambiguous-topic/redirect cases, spot
+      check 2-3 articles against pageviews.wmcloud.org.
+- [ ] **Stage 9 — evals**: `evals/evals.json` (3 sample queries + edge
+      cases from the spec), run for real on Haiku 4.5, fix `SKILL.md`/CLI
+      contracts based on failures (not the eval), `VERIFICATION.md` log.
+- [ ] **Stage 10 — final `README.md`** for the reviewer: install/run,
+      architecture rationale, "як розвивати далі".
+
+## Global constraints (from the spec, copied verbatim in spirit)
+
+- Python 3.10+, PEP 723 inline script metadata, run via `uv run
+  scripts/<name>.py`; `requirements.txt` kept in sync for plain `pip`.
+- No compiled binaries; everything lives inside the skill directory.
+- Scripts write outputs to `./wikitrends-out/<run-id>/` in the *caller's*
+  cwd, never inside the skill directory.
+- Cache: SQLite under `~/.cache/wikitrends/` (override via
+  `WIKITRENDS_CACHE`).
+- stdout is compact JSON only (~40 lines), errors are
+  `{"ok": false, "error_code", "message", "hint"}`.
+- `WIKITRENDS_CONTACT` env var feeds the User-Agent contact info.
+- All user-facing report text and `SKILL.md` body prose: per spec section
+  on language (report in user's language; `SKILL.md` body in English;
+  description carries Ukrainian keywords too).
