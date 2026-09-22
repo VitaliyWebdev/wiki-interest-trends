@@ -6,6 +6,13 @@ committed, so progress and decisions survive between sessions. The
 reviewer-facing `README.md` gets written for real at Stage 10 — until then
 it stays a stub.
 
+**Rule:** alongside this stage checklist, every feature/module gets its own
+short doc in `docs/dev/` right after it's built and tested — what it's for,
+its contract, and non-obvious decisions/gotchas. This file tracks *progress*;
+`docs/dev/*.md` is what actually saves a future session from re-reading all
+the code. `docs/dev/` is internal-only, distinct from `references/` (the
+shipped, agent-facing docs bundled into the skill itself).
+
 ## Goal
 
 Agent Skill that lets a Haiku-4.5-driven agent answer "is interest in topic
@@ -95,6 +102,11 @@ wiki-interest-trends/
 ├── assets/fonts/DejaVuSans*.ttf
 ├── evals/evals.json
 ├── VERIFICATION.md              # written at Stage 9
+├── docs/dev/                    # internal-only: one short doc per feature/module
+│   ├── http-client.md
+│   ├── cache.md
+│   ├── errors-and-cli-contract.md
+│   └── wikidata-lookup-and-resolve-topic.md
 └── tests/
     ├── fixtures/
     └── test_*.py
