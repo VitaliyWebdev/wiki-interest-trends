@@ -173,9 +173,16 @@ without a green light on the previous one.
       to avoid the Stage-3 partial-month trap. 21 new tests (100 total).
       Smoke-tested live via `uv run` from an external cwd (not the skill
       directory) against real Wikimedia before committing.
-- [ ] **Stage 6 — `report.py`**: 1-page PDF via reportlab + DejaVu fonts,
-      summary passed in by the agent, limitations/trust level auto-filled.
-      Test asserts page count == 1.
+- [x] **Stage 6 — `report.py`**: 1-page PDF via reportlab + DejaVu fonts
+      (copied from matplotlib's own bundle), summary passed in by the
+      agent, limitations/trust level auto-filled and localized (uk/en).
+      Raw Canvas API so single-page is structural, not hopeful. 25 new
+      tests (116 total). Found and fixed 2 real bugs only visible by
+      actually running the script and looking at the rendered PDF: a
+      missing transitive `requests` dependency (report.py never makes an
+      HTTP call but imported a module that did), and trust reasons being
+      hardcoded English inside an otherwise-Ukrainian report (fixed by
+      making `trust.Reason` code+params with uk/en render templates).
 - [ ] **Stage 7 — `SKILL.md` + `references/`**: methodology.md,
       api-notes.md (formalized from Stage 0), interpreting.md.
 - [ ] **Stage 8 — full offline test suite**: fixtures for all three
