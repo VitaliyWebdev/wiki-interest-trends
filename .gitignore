@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.venv/
+wikitrends-out/
+.DS_Store
