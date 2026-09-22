@@ -155,11 +155,15 @@ without a green light on the previous one.
       `--include-redirects` summation logic are Stage 5 (chart+CLI wiring),
       so `analyze.py` doesn't exist as a file yet. Smoke-tested live via a
       throwaway script against real Wikidata/Wikimedia before committing.
-- [ ] **Stage 4 — stats + trust**: `stats.py` (YoY, Theil-Sen/log,
+- [x] **Stage 4 — stats + trust**: `stats.py` (YoY, Theil-Sen/log,
       Mann-Kendall, peak concentration, seasonality) and `trust.py`
-      (deterministic high/medium/low + human-readable reasons). Pure
-      functions, heavily unit-tested with synthetic series (known slopes,
-      known peaks) since this is the part an agent can't sanity-check.
+      (deterministic high/medium/low + human-readable reasons). 28 new
+      tests (79 total), all against synthetic series with a mathematically
+      known correct answer (e.g. Theil-Sen recovers exact ln(2) even with a
+      1,000,000-view outlier injected; Mann-Kendall S/p cross-checked
+      against an independently written reference calc, not just re-run
+      through the same code). No network involved in this stage at all —
+      pure math.
 - [ ] **Stage 5 — `analyze.py` finished**: chart.py (PNG) + CLI wiring +
       `analysis.json` + compact stdout JSON contract. `--help` with
       examples.
