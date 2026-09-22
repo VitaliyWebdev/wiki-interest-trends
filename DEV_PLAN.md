@@ -114,10 +114,15 @@ pushed. We check in after each one before moving on — no stage starts
 without a green light on the previous one.
 
 - [x] **Stage 0 — API research** (above)
-- [ ] **Stage 1 — `wikitrends` plumbing**: `http.py` (UA, retry/backoff,
+- [x] **Stage 1 — `wikitrends` plumbing**: `http.py` (UA, retry/backoff,
       404 split), `cache.py` (SQLite, short TTL for current incomplete
       month), `errors.py` (error-JSON contract). Unit tests with a fake
-      transport (no real network in tests).
+      transport (no real network in tests). 23 tests, all green. TDD
+      throughout (each module: write tests, watch fail, implement, watch
+      pass). Note: TTL policy (short TTL for the current incomplete month,
+      permanent for closed months) is a *caller* decision — `cache.py`
+      only provides `ttl_seconds=None` (forever) vs. a number; `pageviews.py`
+      in Stage 3 decides which to pass per month.
 - [ ] **Stage 2 — `resolve_topic.py`**: wikidata.py + the CLI itself.
       Ambiguity detection (multiple substantially different candidates →
       surfaced, not guessed), missing-language handling. Tests against
