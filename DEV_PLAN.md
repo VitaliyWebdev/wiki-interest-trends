@@ -164,9 +164,15 @@ without a green light on the previous one.
       against an independently written reference calc, not just re-run
       through the same code). No network involved in this stage at all —
       pure math.
-- [ ] **Stage 5 — `analyze.py` finished**: chart.py (PNG) + CLI wiring +
-      `analysis.json` + compact stdout JSON contract. `--help` with
-      examples.
+- [x] **Stage 5 — `analyze.py` finished**: `chart.py` (PNG, peaks marked) +
+      CLI wiring + `analysis.json` + compact stdout JSON contract, `--help`
+      with examples. `--qids`+`--langs` (cross-language, via Wikidata) and
+      `--titles`+`--lang` (single-language, direct, for fast repeat
+      queries) both supported. `--last Nm` resolves to N *complete*
+      calendar months ending at the most recent finished month specifically
+      to avoid the Stage-3 partial-month trap. 21 new tests (100 total).
+      Smoke-tested live via `uv run` from an external cwd (not the skill
+      directory) against real Wikimedia before committing.
 - [ ] **Stage 6 — `report.py`**: 1-page PDF via reportlab + DejaVu fonts,
       summary passed in by the agent, limitations/trust level auto-filled.
       Test asserts page count == 1.
