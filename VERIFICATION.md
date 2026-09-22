@@ -204,3 +204,44 @@ mechanism is the direct CLI subcommands used above,
 shell — not slash-commands sent through a prompt. Interactive sessions
 presumably intercept `/plugin ...` as a slash command before it reaches
 the model; non-interactive `-p` mode does not.)
+
+### Real-world confirmation: desktop app GUI "Add marketplace" fails for the user
+
+After the CLI install was verified working (above), the user tried the
+desktop app's own "+" → Plugins → "Add marketplace" dialog for real, with
+this repo's HTTPS URL. It failed with a generic "Failed to add
+marketplace" error. Separately, after the marketplace *was* successfully
+registered via the CLI (`claude plugin marketplace list` showed it), it
+did not appear when the user searched "wiki" in the desktop app's
+"Discover" tab.
+
+Researched both symptoms against public GitHub issues rather than
+guessing:
+
+- **"Failed to add marketplace"** matches
+  [anthropics/claude-code#77927](https://github.com/anthropics/claude-code/issues/77927)
+  exactly: the desktop GUI's marketplace-add flow prefers an SSH clone
+  (`git@github.com:owner/repo.git`) in a non-interactive spawned process
+  with no usable `ssh-agent`, hangs, and is killed after a ~60s timeout,
+  surfaced as an unactionable `MARKETPLACE_ERROR:UNKNOWN`. The identical
+  operation via the CLI (`claude plugin marketplace add owner/repo`)
+  succeeds in seconds, because the terminal has real SSH credential
+  access. **Closed by Anthropic as "not planned"** — not something fixable
+  from this repo's side (`claude plugin validate .` already passes
+  clean, confirming the manifests themselves aren't the problem).
+- **Discover tab not showing the custom marketplace's plugin** matches
+  [anthropics/claude-code#43745](https://github.com/anthropics/claude-code/issues/43745):
+  custom/self-hosted marketplace plugins are known to desync between the
+  "Installed" and "Discover" tabs, and the marketplace auto-sync
+  mechanism does a `git fetch` but never a `git pull`, leaving the cache
+  stale. Closed as a duplicate of broader marketplace-sync issues,
+  also unresolved.
+
+**Conclusion:** these are confirmed, reported, currently-unfixed bugs in
+Claude Code Desktop's own plugin-marketplace UI — general to any
+custom/self-hosted marketplace, not specific to this repo — not a defect
+in this skill's packaging. Any user trying the GUI-only path is likely to
+hit the same wall. `README.md` was updated to lead with the CLI install
+method (proven reliable twice, above) and explicitly flag the GUI path as
+currently broken, with sources, rather than let users bounce off an
+undocumented dead end.

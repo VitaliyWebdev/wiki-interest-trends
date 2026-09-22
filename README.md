@@ -51,17 +51,43 @@ uv venv .venv && uv pip install -r requirements.txt --python .venv/bin/python
 
 ### Installing as a Claude Code skill
 
-**Recommended — as a plugin, no git/terminal needed.** This repo is its
-own self-hosted plugin marketplace (`.claude-plugin/marketplace.json` +
-`.claude-plugin/plugin.json`). Inside any Claude Code session:
+**Recommended — as a plugin, via two terminal commands.** This repo is
+its own self-hosted plugin marketplace (`.claude-plugin/marketplace.json` +
+`.claude-plugin/plugin.json`). From an actual terminal (not the Claude
+Code chat box — see the note below):
 
-```
-/plugin marketplace add VitaliyWebdev/wiki-interest-trends
-/plugin install wiki-interest-trends@wiki-interest-trends-marketplace
+```bash
+claude plugin marketplace add VitaliyWebdev/wiki-interest-trends
+claude plugin install wiki-interest-trends@wiki-interest-trends-marketplace
 ```
 
-That's it — two slash commands, works for any user, not just developers
-comfortable with git. Run `/skills` afterward to confirm it's active.
+Both commands complete in seconds and the skill becomes usable in every
+Claude Code session immediately (project, desktop app, etc. — installed
+at "user" scope). Run `/skills` in a session afterward to confirm it's
+active. This exact flow was verified end-to-end in a completely fresh
+scratch workspace with no prior setup at all — see `VERIFICATION.md`.
+
+> **Why not just click a button in the desktop app?** Its "+" → Plugins
+> → "Add marketplace" dialog *should* be able to do this with no
+> terminal at all, but as of this writing it reliably fails with a
+> generic "Failed to add marketplace" error for any custom/self-hosted
+> marketplace (not specific to this repo) — the dialog's git clone
+> prefers SSH and hangs with no usable credentials in that context,
+> timing out after ~60s
+> ([anthropics/claude-code#77927](https://github.com/anthropics/claude-code/issues/77927),
+> closed as "not planned"). Separately, even a marketplace registered
+> successfully via the CLI doesn't reliably show up when searching the
+> desktop app's "Discover" tab
+> ([anthropics/claude-code#43745](https://github.com/anthropics/claude-code/issues/43745)).
+> Both are known, reported bugs in Claude Code itself — nothing to fix on
+> this repo's side (`claude plugin validate .` passes clean). Once
+> installed via the two commands above, the plugin works completely
+> normally and shows up correctly under the desktop app's "Yours" tab.
+>
+> Typing `/plugin marketplace add ...` directly into the Claude Code chat
+> box doesn't work either — it gets interpreted as "invoke a skill named
+> `plugin`" rather than the CLI's slash command. The two `claude plugin
+> ...` commands above are real shell commands, run from your terminal.
 
 **Alternative — manual clone/symlink**, if you'd rather manage it as a
 plain directory (e.g. to track your own fork without going through the
