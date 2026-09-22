@@ -4,3 +4,5 @@
 requests==2.34.2
 pytest==9.1.1
 matplotlib==3.11.2
+reportlab==5.0.1
+pypdf==6.19.0  # test-only: used to assert report.pdf is exactly one page

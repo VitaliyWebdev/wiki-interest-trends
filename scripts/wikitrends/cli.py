@@ -8,7 +8,6 @@ from typing import Any, Callable, Tuple
 
 from .cache import Cache
 from .errors import AppError
-from .http import build_session
 
 
 def run_cli(main_fn: Callable[[], Any]) -> None:
@@ -25,6 +24,14 @@ def run_cli(main_fn: Callable[[], Any]) -> None:
 
 
 def make_session_and_cache() -> Tuple[Any, Cache]:
+    # Imported lazily so a script that only needs run_cli/new_run_dir (like
+    # report.py, which never makes an HTTP request) doesn't have to declare
+    # `requests` in its PEP 723 metadata just because this module also
+    # offers this unrelated helper. Real bug found running report.py live:
+    # "ModuleNotFoundError: No module named 'requests'" from this exact
+    # top-level import.
+    from .http import build_session
+
     contact = os.environ.get("WIKITRENDS_CONTACT")
     return build_session(contact=contact), Cache()
 

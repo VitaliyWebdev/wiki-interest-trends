@@ -343,7 +343,15 @@ def _analyze_one_target(
             "peak_share_top2": peak,
             "seasonality_ratio": seasonality,
         },
-        "trust": {"level": trust.level, "reasons": trust.reasons},
+        "trust": {
+            "level": trust.level,
+            # "reasons": rendered English text, for quick reading straight out
+            # of the JSON. "reason_codes": code+params, so report.py (or any
+            # other consumer) can re-render each reason in the report's own
+            # language instead of always English -- see docs/dev/stats-and-trust.md.
+            "reasons": [r.render("en") for r in trust.reasons],
+            "reason_codes": [{"code": r.code, "params": r.params} for r in trust.reasons],
+        },
     }
 
 

@@ -88,6 +88,18 @@ assess_trust(*, months_of_data, avg_monthly_views, mk_p_value,
 `"high"`: every check appends either a strength or a concern, so the
 report always has something to say about *why*, not just the label.
 
+**Update (Stage 6):** `reasons` is `List[Reason]`, not `List[str]`.
+`Reason(code, params)` is structured, not a pre-formatted English
+sentence — `render_reason(reason, lang)` renders it from
+`REASON_TEMPLATES[code][lang]`, with English as the fallback for an
+unsupported language. This changed after `report.py` was actually run and
+produced a Ukrainian-language report with the limitations section stuck in
+English (the reasons were hardcoded English strings); see
+`docs/dev/report-pdf.md` for the full story. `analyze.py` writes both
+`trust.reasons` (rendered English, for a human skimming `analysis.json`)
+and `trust.reason_codes` (code+params, for `report.py` to localize) into
+the JSON.
+
 **The rule, spelled out** (matches the five factors the spec names
 explicitly): below 12 months of data, short-circuit straight to `"low"` —
 there isn't enough history to even attempt a trend. Otherwise, check five
