@@ -53,7 +53,7 @@ not just repo-level dev scaffolding). No compiled binaries are vendored;
 the only non-code assets are two DejaVu Sans `.ttf` files (for
 Cyrillic-capable PDF text) copied from matplotlib's own bundle.
 
-Run the test suite (124 tests, no network required — all fixtures are
+Run the test suite (127 tests, no network required — all fixtures are
 recorded real API responses). A `pytest.ini` at the repo root points
 `pytest` at the tests' real location so this works from either place:
 
@@ -195,6 +195,22 @@ that's the fastest way into the actual implementation reasoning;
   topics within one edition); cross-language comparison always goes
   through `--qids`. See `docs/dev/chart-and-analyze-cli.md` for the
   reasoning and when to revisit it.
+- **A sandboxed Bash tool (e.g. Claude Code with Bash sandboxing on) can
+  silently block one of this skill's hosts without a real network
+  problem existing.** The skill talks to three different host patterns —
+  `www.wikidata.org`, `wikimedia.org`, and a `*.wikipedia.org` host per
+  requested language — and such a sandbox pre-allows no domains by
+  default, approving them per command. A host it hasn't approved yet
+  fails exactly like a real network error from inside the script. This
+  happened twice in real usage, both times misdiagnosed by the agent as
+  "the user's organization blocks this," when the actual host was simply
+  unapproved. `network_error`'s `hint` now curls the *exact* URL that
+  failed (not a fixed stand-in) and tells the agent to check the Bash
+  tool's own result for a blocked-host message before blaming the
+  network — see `references/interpreting.md`'s `network_error` section.
+  There's no code-side fix for the sandbox denial itself; pre-approving
+  `www.wikidata.org`, `wikimedia.org`, and `*.wikipedia.org` (e.g. via
+  `sandbox.network.allowedDomains`) avoids hitting it at all.
 
 ## How to develop further
 

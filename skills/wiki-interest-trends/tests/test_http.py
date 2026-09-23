@@ -132,8 +132,40 @@ def test_network_error_hint_tells_the_agent_to_verify_before_blaming_the_network
 
     hint = exc_info.value.hint
     assert "curl" in hint
-    assert "wikidata.org" in hint
     assert "verify" in hint.lower()
+
+
+def test_network_error_hint_curls_the_exact_url_that_failed():
+    # This skill talks to three different host patterns (www.wikidata.org,
+    # wikimedia.org, and a per-language *.wikipedia.org host). A hint that
+    # always tests the same hardcoded host gives a false "all clear" when
+    # the host that actually failed was a different one -- the agent then
+    # wrongly rules out a real, host-specific block. The curl command must
+    # target the URL that actually failed, not a fixed stand-in.
+    session = FakeSession([requests.exceptions.ConnectionError("boom")])
+    failing_url = "https://pl.wikipedia.org/w/api.php?action=query&redirects"
+
+    with pytest.raises(AppError) as exc_info:
+        get_json(session, failing_url, sleep=lambda s: None, max_retries=0)
+
+    hint = exc_info.value.hint
+    assert f"curl -sv '{failing_url}'" in hint
+
+
+def test_network_error_hint_mentions_sandbox_host_approval():
+    # A silent, deterministic sandbox host-allowlist block (Claude Code's
+    # Bash sandbox pre-allows no domains, and this skill touches multiple
+    # hosts) looks identical to a transient network error from inside this
+    # script -- the difference only shows up in the Bash tool's own result.
+    # The hint must point the agent at that distinction, not just at curl.
+    session = FakeSession([requests.exceptions.ConnectionError("boom")])
+
+    with pytest.raises(AppError) as exc_info:
+        get_json(session, "https://wikimedia.org/api/rest_v1/x", sleep=lambda s: None, max_retries=0)
+
+    hint = exc_info.value.hint.lower()
+    assert "sandbox" in hint
+    assert "blocked host" in hint or "disallowed" in hint
 
 
 def test_build_session_sets_user_agent_with_given_contact():
