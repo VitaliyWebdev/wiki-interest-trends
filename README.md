@@ -195,22 +195,31 @@ that's the fastest way into the actual implementation reasoning;
   topics within one edition); cross-language comparison always goes
   through `--qids`. See `docs/dev/chart-and-analyze-cli.md` for the
   reasoning and when to revisit it.
-- **A sandboxed Bash tool (e.g. Claude Code with Bash sandboxing on) can
-  silently block one of this skill's hosts without a real network
-  problem existing.** The skill talks to three different host patterns —
-  `www.wikidata.org`, `wikimedia.org`, and a `*.wikipedia.org` host per
-  requested language — and such a sandbox pre-allows no domains by
-  default, approving them per command. A host it hasn't approved yet
-  fails exactly like a real network error from inside the script. This
-  happened twice in real usage, both times misdiagnosed by the agent as
-  "the user's organization blocks this," when the actual host was simply
-  unapproved. `network_error`'s `hint` now curls the *exact* URL that
-  failed (not a fixed stand-in) and tells the agent to check the Bash
-  tool's own result for a blocked-host message before blaming the
-  network — see `references/interpreting.md`'s `network_error` section.
-  There's no code-side fix for the sandbox denial itself; pre-approving
-  `www.wikidata.org`, `wikimedia.org`, and `*.wikipedia.org` (e.g. via
-  `sandbox.network.allowedDomains`) avoids hitting it at all.
+- **Whatever sandbox is running the skill's scripts can silently block
+  one of its hosts without a real network problem existing — and which
+  sandbox it is depends on which Claude product is running the skill.**
+  The skill talks to three different host patterns — `www.wikidata.org`,
+  `wikimedia.org`, and a `*.wikipedia.org` host per requested language.
+  In **Claude Code**, the local Bash-tool sandbox pre-allows no domains
+  by default, approving them per command, so a host it hasn't approved
+  yet fails exactly like a real network error. In **claude.ai chat or
+  Claude Desktop** (no local Bash tool — code runs in Anthropic's own
+  hosted sandbox), it's a separate setting entirely — Capabilities > Code
+  execution > Allow network egress, defaulting to "package managers only"
+  for Team/Enterprise accounts, which doesn't include any of these hosts
+  by design. This has happened three times in real usage so far, each
+  time misdiagnosed by the agent as "the user's organization blocks
+  this" and pointing the user at IT, who control neither setting.
+  `network_error`'s `hint` now curls the *exact* URL that failed (not a
+  fixed stand-in) and tells the agent to triage by which product it's
+  running as before saying anything about the user's network — see
+  `references/interpreting.md`'s `network_error` section for the full
+  decision tree. There's no code-side fix for either sandbox's denial
+  itself: for Claude Code, pre-approve the hosts (e.g. via
+  `sandbox.network.allowedDomains`); for claude.ai/Claude Desktop, the
+  account or org owner adds them under Capabilities, though that setting
+  is known to sometimes not take effect immediately even when configured
+  correctly.
 
 ## How to develop further
 

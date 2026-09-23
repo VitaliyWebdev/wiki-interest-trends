@@ -81,42 +81,63 @@ disagreement.
 
 ## `network_error`: verify before you diagnose
 
-A real incident -- twice, independently, with two different people -- not
-a hypothetical: an agent hit `network_error`, and without checking
-anything further, told the user "your organization's network policy
-blocks wikidata.org and wikimedia.org" and suggested contacting IT. When
-tested directly (plain `curl`, then `uv run resolve_topic.py`, run
-*outside* the agent's own tool calls), both worked fine, live. The actual
-cause was specific to the process/environment the agent had just run
-in, not the user's real network at all.
+A real pattern, not a hypothetical, and not a one-off: three times now,
+independently, across different people, an agent hit `network_error` and,
+without checking anything further, told the user "your organization's
+network policy blocks wikidata.org/wikimedia.org/wikipedia.org" and
+suggested contacting IT. Twice this was directly disproved (plain `curl`
+and `uv run resolve_topic.py`, run *outside* the agent's own tool calls,
+both worked fine, live). The actual cause was specific to the
+process/environment the agent had just run in, not the user's real
+network at all -- and "contact IT" sent the user toward a fix that
+couldn't possibly do anything, because IT doesn't control the thing that
+was actually blocking the request.
 
-There are two distinct, non-network explanations worth ruling out first,
-and they need different checks:
+There are three distinct, non-network explanations worth ruling out
+first, and **which one applies depends on which Claude product you're
+running as** -- you already know this (you know whether you're Claude
+Code, claude.ai chat, or Claude Desktop), so use it instead of guessing:
 
 1. **A one-off failure in this specific request.** Transient, no pattern
    to it. Ruled out by retrying, or by a raw `curl` on the same URL
    succeeding.
-2. **A sandboxed Bash tool that hasn't approved this specific host yet.**
-   If you're running inside a sandboxed environment (e.g. Claude Code
-   with Bash sandboxing on), network access is normally an allowlist of
-   approved hosts, and this skill talks to *three different host
-   patterns* -- `www.wikidata.org`, `wikimedia.org`, and a
-   `*.wikipedia.org` host per language (`en.wikipedia.org`,
-   `uk.wikipedia.org`, ...). A sandbox can easily have approved one of
-   these and not another, especially the per-language ones, which show up
-   only once a specific language is requested. This kind of block is
-   silent and deterministic -- retrying the same command won't fix it,
-   and a `curl` to a *different, already-approved* host will misleadingly
-   succeed. The tell is in the Bash tool's own result (separate from this
-   script's error output): a message naming a disallowed or blocked host.
-   The fix is approving/declaring that host, not a network diagnosis.
+2. **Claude Code's sandboxed Bash tool hasn't approved this specific host
+   yet.** If you're running inside Claude Code with Bash sandboxing on,
+   network access is normally an allowlist of approved hosts, and this
+   skill talks to *three different host patterns* -- `www.wikidata.org`,
+   `wikimedia.org`, and a `*.wikipedia.org` host per language
+   (`en.wikipedia.org`, `uk.wikipedia.org`, ...). A sandbox can easily
+   have approved one of these and not another, especially the
+   per-language ones, which show up only once a specific language is
+   requested. This kind of block is silent and deterministic -- retrying
+   the same command won't fix it, and a `curl` to a *different,
+   already-approved* host will misleadingly succeed. The tell is in the
+   Bash tool's own result (separate from this script's error output): a
+   message naming a disallowed or blocked host. The fix is
+   approving/declaring that host, not a network diagnosis.
+3. **claude.ai chat or Claude Desktop's own network-egress setting for
+   code execution.** These have no local Bash tool at all -- code runs in
+   Anthropic's own hosted sandbox, with its own separate network policy
+   under **Settings > Capabilities > Code execution > Allow network
+   egress** (Team/Enterprise: **Organization settings > Capabilities**,
+   admin-controlled). It defaults to "package managers only" for
+   Team/Enterprise accounts, which does not include any of this skill's
+   hosts -- so a fresh install on a Team account will hit this by design,
+   with zero relation to the company's actual firewall or VPN. The fix is
+   the account/org owner adding `www.wikidata.org`, `wikimedia.org`, and
+   `*.wikipedia.org` there (or picking "All domains"), **not** filing a
+   ticket with corporate IT, who have no access to this setting and can't
+   fix it. Warn whoever does this that it's known to sometimes not take
+   effect immediately even when configured correctly -- don't let a
+   retry failing right after a correct change look like "something else
+   is wrong with our account."
 
 If you hit `network_error`: run the raw `curl` command the error's `hint`
 gives you -- it's already filled in with the *exact* URL that failed, not
-a stand-in -- in the *same* shell you're already using, before saying
-anything to the user about their network or their organization. Also
-check whether the Bash tool's result flags a blocked host for that same
-command. Only report a real network/organizational block to the user if
-neither of those explains it -- and even then, name the *specific* host
-that's actually unreachable, not "wikidata.org and wikimedia.org" as a
+a stand-in -- before saying anything to the user about their network or
+their organization. In Claude Code, also check whether the Bash tool's
+result flags a blocked host for that same command. Only report a real
+network/organizational block to the user if none of the above explains
+it -- and even then, name the *specific* host that's actually
+unreachable, not "wikidata.org, wikimedia.org, and wikipedia.org" as a
 blanket claim, since a block on one host says nothing about the others.

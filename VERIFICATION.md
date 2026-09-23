@@ -413,3 +413,56 @@ spec as of this commit -- but that claim is only as strong as the
 checks that exist, which is exactly why this stage replaced a
 hand-rolled check with the spec's own validator rather than just
 patching the one YAML error and moving on.
+
+## Stage 12f: a third, independent network_error misdiagnosis -- different product, different fix
+
+A third real occurrence, reported directly by the maintainer from a
+stranger's session: same symptom (`network_error` misdiagnosed as "your
+organization's network policy blocks this"), but the transcript showed
+the agent offering to "connect a folder from your Mac" to get a local
+shell -- meaning this session had no local Bash tool at all. That's
+claude.ai chat or Claude Desktop, not Claude Code, so Stage 12c/12d's
+fix (curl the exact URL, then check the *Bash tool's* own result for a
+blocked-host message) doesn't fully apply -- there's no Bash tool to
+check the result of.
+
+Researched claude.ai's own hosted code-execution sandbox specifically
+(as opposed to Claude Code's local Bash sandbox, which is a completely
+separate mechanism): it has its own network policy under Settings >
+Capabilities > Code execution > Allow network egress, defaulting to
+"package managers only" for Team/Enterprise accounts -- which doesn't
+include any of this skill's hosts by design, with zero relation to the
+company's actual firewall/VPN. Confirmed via Anthropic's own published
+Team/Enterprise capability docs and multiple real, open GitHub issues
+(anthropics/claude-code#93520, #38984, #51400) showing that even adding
+domains to the allowlist there doesn't always reliably take effect.
+
+So there are now three, not two, non-network explanations to rule out,
+and **which one applies depends on which Claude product is running the
+skill** -- something the agent always knows about itself, so the fix is
+to have it use that knowledge instead of guessing:
+
+1. Transient failure -- ruled out by curl on the exact URL succeeding.
+2. Claude Code's Bash-tool sandbox hasn't approved this host (Stage
+   12d) -- tell from the Bash tool's own result.
+3. **New:** claude.ai chat/Claude Desktop's Capabilities network-egress
+   setting doesn't include this host -- there's no Bash tool result to
+   check here; the fix is the account/org owner adding the hosts under
+   Capabilities, not IT, who have no access to that setting at all.
+
+Fixed: `http.py`'s `network_error` hint, `SKILL.md`'s error table (now
+short, pointing at the full decision tree rather than growing inline
+again), and `references/interpreting.md`'s `network_error` section all
+now cover all three causes explicitly, telling the agent to pick based
+on which product it's running as. New test asserts the hint names the
+Capabilities/network-egress setting specifically, not just a generic
+"ask your admin." Full suite: 129 passed. Both validators (`claude
+plugin validate .`, `agentskills validate`) clean.
+
+As with Stage 12d, this is the most likely explanation given the
+transcript's own evidence (the "connect a folder" offer only makes sense
+without a local Bash tool), not a confirmation from that specific
+stranger's account settings -- there was no way to get that
+confirmation. The fix is safe regardless: it makes the agent name a
+setting that actually exists and that someone can actually act on,
+instead of "contact IT" for a setting IT has no access to.
