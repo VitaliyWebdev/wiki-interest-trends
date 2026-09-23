@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Optional
 
 from .i18n import DEFAULT_LANG, pick
@@ -58,8 +58,8 @@ REASON_TEMPLATES: Dict[str, Dict[str, str]] = {
         "uk": "Тренд лише слабко значущий (Mann-Kendall p={p_value:.2f}).",
     },
     "trend_significant": {
-        "en": "Trend is statistically significant (Mann-Kendall p={p_value:.3f}).",
-        "uk": "Тренд статистично значущий (Mann-Kendall p={p_value:.3f}).",
+        "en": "Trend is statistically significant (Mann-Kendall {p}).",
+        "uk": "Тренд статистично значущий (Mann-Kendall {p}).",
     },
     "trend_reverses_after_normalization": {
         "en": "Trend direction changes after normalizing for the language edition's overall traffic -- the raw trend may just be tracking Wikipedia's own growth or decline, not real interest in the topic.",
@@ -88,6 +88,10 @@ REASON_TEMPLATES: Dict[str, Dict[str, str]] = {
 class Reason:
     code: str
     params: Dict[str, Any] = field(default_factory=dict)
+    # True if this reason counts against the trust level, False if it
+    # supports it -- so a report can mark each one without re-deriving
+    # assess_trust()'s rules.
+    concern: bool = False
 
     def render(self, lang: str = DEFAULT_LANG) -> str:
         return render_reason(self, lang)
@@ -97,7 +101,11 @@ def render_reason(reason: Reason, lang: str = DEFAULT_LANG) -> str:
     templates = REASON_TEMPLATES.get(reason.code)
     if not templates:
         return reason.code
-    return pick(templates, lang).format(**reason.params)
+    params = dict(reason.params)
+    if params.get("p_value") is not None:
+        # A strong trend's p rounds to "p=0.000", which reads as "impossible".
+        params["p"] = "p<0.001" if params["p_value"] < 0.001 else f"p={params['p_value']:.3f}"
+    return pick(templates, lang).format(**params)
 
 
 @dataclass
@@ -129,6 +137,7 @@ def assess_trust(
                 Reason(
                     "insufficient_history",
                     {"months": months_of_data, "min_months": MIN_MONTHS_FOR_ANY_TREND},
+                    concern=True,
                 )
             ],
         )
@@ -180,4 +189,4 @@ def assess_trust(
     else:
         level = "low"
 
-    return TrustAssessment(level=level, reasons=strengths + concerns)
+    return TrustAssessment(level=level, reasons=strengths + [replace(r, concern=True) for r in concerns])

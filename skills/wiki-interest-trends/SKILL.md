@@ -127,7 +127,9 @@ be inside the base directory -- use the full path from the start.)
    "PDF"/"deck", or anything to hand off or share with someone else --
    generate the actual file, don't treat a well-formatted chat answer as a
    substitute:
-   `uv run scripts/report.py --analysis-json <path from step 2> --lang <user's language> --summary "<your conclusion>"`
+   `uv run scripts/report.py --analysis-json <path from step 2> --lang <user's language> --question "<the user's question>" --summary "<your conclusion>"`
+   The question becomes the report's headline. Keep the summary to 2-4
+   sentences: the conclusion box holds six lines and cuts off the rest.
    If the user just asked a direct question in passing ("is interest
    growing?") with no indication they want something to share, don't
    generate the PDF unasked -- but **always end your answer with a
@@ -205,7 +207,11 @@ uv run scripts/report.py --analysis-json wikitrends-out/<run-id>/analysis.json -
   `yoy_growth_raw` with `yoy_growth_normalized`. If raw falls faster than
   normalized, the edition itself is shrinking. A real eval run said
   "English Wikipedia itself gets more traffic" when those numbers
-  (-20% raw vs. -14% normalized) showed the opposite.
+  (-20% raw vs. -14% normalized) showed the opposite. Outside causes
+  (the pandemic, AI answers, the news) are never in the JSON either: a
+  guess can go in your chat answer, labeled as a guess, but never in
+  `report.py --summary`, which gets shared as fact. A real eval run
+  printed "This reflects a shift from the pandemic-era spike" into a PDF.
 - **If you didn't generate a PDF, your answer's last line is the one-line
   PDF offer** from Workflow step 4, in the user's language. Put it after
   any other follow-up suggestion, never in place of one. A real English

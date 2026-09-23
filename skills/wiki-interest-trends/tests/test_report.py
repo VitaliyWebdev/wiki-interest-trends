@@ -8,8 +8,11 @@ import pytest
 from pypdf import PdfReader
 
 import report
-from report import generate_report
+from report import _direction_style, _reason_entries, generate_report
+from wikitrends import theme
+from wikitrends.chart import CHART_LABELS
 from wikitrends.errors import AppError
+from wikitrends.trust import Reason, render_reason
 
 
 def make_series(article="Інтервальне голодування", lang="uk", found=True, trust_level="high", yoy=0.42, trend="increasing"):
@@ -33,7 +36,7 @@ def make_series(article="Інтервальне голодування", lang="u
         "trust": {
             "level": trust_level,
             "reasons": ["Trend is statistically significant (Mann-Kendall p=0.010)."],
-            "reason_codes": [{"code": "trend_significant", "params": {"p_value": 0.01}}],
+            "reason_codes": [{"code": "trend_significant", "params": {"p_value": 0.01}, "concern": False}],
         },
     }
 
@@ -257,3 +260,175 @@ def test_help_text_includes_a_runnable_example():
 
     assert "uv run scripts/report.py" in help_text
     assert "--analysis-json" in help_text
+
+
+def report_text(tmp_path, analysis, **kwargs):
+    output = tmp_path / "report.pdf"
+    kwargs.setdefault("generated_at", datetime(2024, 5, 1, tzinfo=timezone.utc))
+    generate_report(analysis, output_path=output, **kwargs)
+    reader = PdfReader(str(output))
+    assert len(reader.pages) == 1
+    return reader.pages[0].extract_text()
+
+
+def test_the_chart_is_embedded_as_vector_graphics_in_the_report_language(tmp_path):
+    # It used to be a 150 dpi PNG: blurry when zoomed, and its text
+    # invisible to anything reading the PDF.
+    output = tmp_path / "report.pdf"
+    generate_report(make_analysis(), output_path=output, lang="uk")
+
+    page = PdfReader(str(output)).pages[0]
+    assert len(page.images) == 0
+    assert CHART_LABELS["uk"]["title"] in page.extract_text()
+
+
+def test_pdf_title_metadata_is_the_report_heading(tmp_path):
+    output = tmp_path / "report.pdf"
+    generate_report(make_analysis(), output_path=output, lang="en", question="Is interest growing?")
+
+    assert PdfReader(str(output)).metadata.title == "Is interest growing?"
+
+
+def test_header_says_what_period_and_editions_the_data_covers(tmp_path):
+    analysis = make_analysis(series=[make_series(), make_series(found=False, lang="pl")])
+
+    assert "Jan 2024 – Feb 2024 · Editions: uk, pl" in report_text(tmp_path, analysis, lang="en")
+    assert "січ. 2024 – лют. 2024 · Розділи: uk, pl" in report_text(tmp_path, analysis, lang="uk")
+
+
+def test_a_long_question_as_heading_shrinks_before_it_is_cut(tmp_path):
+    question = "How has interest in intermittent fasting changed on English, German, Polish, Czech " \
+               "and Ukrainian Wikipedia over the last two years, adjusted for traffic?"
+
+    text = report_text(tmp_path, make_analysis(), lang="en", question=question)
+
+    assert "adjusted for traffic?" in text
+
+
+def test_series_without_an_article_get_a_row_saying_so(tmp_path):
+    analysis = make_analysis(series=[make_series(), make_series(found=False, lang="pl")])
+
+    assert "no article in this edition" in report_text(tmp_path, analysis, lang="en")
+
+
+def test_yoy_is_colored_only_when_a_significant_trend_agrees_with_it():
+    assert _direction_style(-0.2, "decreasing") == (theme.DOWN, "▼")
+    assert _direction_style(0.3, "increasing") == (theme.UP, "▲")
+    # -3% that Mann-Kendall calls "no trend" must not read as a decline
+    assert _direction_style(-0.03, "no trend") == (theme.FLAT, "")
+    assert _direction_style(0.05, "decreasing") == (theme.FLAT, "")
+    assert _direction_style(None, "increasing") == (theme.FLAT, "")
+
+
+def with_reasons(series, reason_codes):
+    series["trust"]["reason_codes"] = reason_codes
+    return series
+
+
+def test_concerns_are_listed_first_and_marked_differently_from_strengths():
+    s = with_reasons(make_series(), [
+        {"code": "long_history", "params": {"months": 24}, "concern": False},
+        {"code": "low_volume", "params": {"avg_views": 5}, "concern": True},
+    ])
+
+    entries = _reason_entries(report.LABELS["en"], [s], "en")
+
+    assert [(marker, text) for marker, text, _ in entries] == [
+        ("!", render_reason(Reason("low_volume", {"avg_views": 5}), "en")),
+        ("✓", render_reason(Reason("long_history", {"months": 24}), "en")),
+    ]
+
+
+def test_a_reason_every_series_shares_is_listed_once_under_all_series():
+    shared = {"code": "long_history", "params": {"months": 24}, "concern": False}
+    a = with_reasons(make_series(article="A", lang="en"), [shared, {"code": "high_volume", "params": {"avg_views": 900}, "concern": False}])
+    b = with_reasons(make_series(article="B", lang="uk"), [shared, {"code": "high_volume", "params": {"avg_views": 300}, "concern": False}])
+
+    entries = _reason_entries(report.LABELS["en"], [a, b], "en")
+    texts = [text for _, text, _ in entries]
+
+    assert texts[0] == "All series"
+    assert sum("24 months" in t for t in texts) == 1
+    assert "A · en" in texts and "B · uk" in texts
+
+
+def test_reasons_that_dont_fit_end_in_a_note_instead_of_silently_vanishing(tmp_path):
+    many = [
+        with_reasons(make_series(article=f"Article {i}", yoy=0.1 * i), [
+            {"code": "high_volume", "params": {"avg_views": 1000 + i}, "concern": False},
+            {"code": "peak_moderate", "params": {"peak_share": 0.3 + i / 100}, "concern": True},
+        ])
+        for i in range(15)
+    ]
+
+    text = report_text(tmp_path, make_analysis(series=many), lang="en", summary="x " * 200)
+
+    assert "the rest is in analysis.json" in text
+
+
+def test_method_notes_are_included_when_there_is_room_and_dropped_whole_when_not(tmp_path):
+    roomy = report_text(tmp_path, make_analysis(), lang="en", summary="Short.")
+    crowded = report_text(
+        tmp_path, make_analysis(series=[make_series(article=f"A{i}") for i in range(15)]),
+        lang="en", summary="Long conclusion. " * 40,
+    )
+
+    assert "How to read this" in roomy and "Mann-Kendall test" in roomy
+    assert "How to read this" not in crowded
+
+
+def test_single_series_trust_card_counts_the_checks_it_passed(tmp_path):
+    s = with_reasons(make_series(), [
+        {"code": "long_history", "params": {"months": 24}, "concern": False},
+        {"code": "high_volume", "params": {"avg_views": 900}, "concern": False},
+        {"code": "trend_not_significant", "params": {"p_value": 0.3}, "concern": True},
+    ])
+
+    assert "2 of 3 checks passed" in report_text(tmp_path, make_analysis(series=[s]), lang="en")
+
+
+def text_baselines(pdf_path):
+    """(text, baseline y in points) for every text run on the page."""
+    runs = []
+
+    def visit(text, cm, tm, *_):
+        if text.strip():
+            runs.append((text.strip(), tm[5] * cm[3] + cm[5]))
+
+    PdfReader(str(pdf_path)).pages[0].extract_text(visitor_text=visit)
+    return runs
+
+
+def test_a_crowded_page_never_draws_into_the_footer(tmp_path):
+    # Real bug: with nine series and a long conclusion, the trust-reasons
+    # heading was drawn on top of the footer and its overflow note below it.
+    output = tmp_path / "report.pdf"
+    many = [make_series(article=f"Article {i}") for i in range(9)]
+    generate_report(
+        make_analysis(series=many), output_path=output, lang="en",
+        question="How does interest compare across nine editions, and which market should we launch in first? " * 2,
+        summary="Long conclusion. " * 60,
+    )
+
+    footer_top = report.MARGIN + report.FOOTER_H
+    footer = ("Data:", "Generated:")
+    intruders = [(t, y) for t, y in text_baselines(output) if y < footer_top and not t.startswith(footer)]
+    assert intruders == []
+
+
+def test_no_two_series_shown_share_a_color(tmp_path, monkeypatch):
+    calls = []
+    original = report.render_chart
+
+    def spy(series, *args, **kwargs):
+        calls.append(series)
+        original(series, *args, **kwargs)
+
+    monkeypatch.setattr(report, "render_chart", spy)
+    many = [make_series(article=f"Article {i}") for i in range(10)]
+    for i, s in enumerate(many):
+        s["label"] = f"Article {i} (uk)"
+
+    generate_report(make_analysis(series=many), output_path=tmp_path / "report.pdf", lang="en")
+
+    assert len(calls[0]) == len(theme.SERIES_COLORS) == report.MAX_TABLE_ROWS

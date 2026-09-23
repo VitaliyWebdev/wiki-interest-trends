@@ -1,6 +1,7 @@
 import report
 from wikitrends.chart import CHART_LABELS
-from wikitrends.i18n import DEFAULT_LANG, SUPPORTED_LANGS, pick
+from wikitrends import i18n
+from wikitrends.i18n import DEFAULT_LANG, SUPPORTED_LANGS, format_compact, format_int, format_pct, month_label, pick
 from wikitrends.trust import REASON_TEMPLATES
 
 
@@ -28,6 +29,10 @@ def test_every_user_facing_string_table_covers_every_supported_language():
     tables = {
         "report.LABELS": report.LABELS,
         "chart.CHART_LABELS": CHART_LABELS,
+        "i18n.MONTHS_SHORT": i18n.MONTHS_SHORT,
+        "i18n.THOUSANDS_SEP": i18n.THOUSANDS_SEP,
+        "i18n.DECIMAL_SEP": i18n.DECIMAL_SEP,
+        "i18n.THOUSAND_SUFFIX": i18n.THOUSAND_SUFFIX,
         **{f"trust.REASON_TEMPLATES[{code}]": t for code, t in REASON_TEMPLATES.items()},
     }
     for name, table in tables.items():
@@ -35,3 +40,23 @@ def test_every_user_facing_string_table_covers_every_supported_language():
         reference = _key_shape(table[DEFAULT_LANG])
         for lang in SUPPORTED_LANGS:
             assert _key_shape(table[lang]) == reference, f"{name}[{lang}] keys differ from {DEFAULT_LANG}"
+
+
+def test_month_label_uses_its_own_names_not_the_process_locale():
+    assert month_label(1, 2025, "en") == "Jan 2025"
+    assert month_label(9, 2024, "uk") == "вер. 2024"
+    assert month_label(5, None, "uk") == "трав."
+
+
+def test_numbers_use_each_languages_own_separators():
+    assert format_int(27880, "en") == "27,880"
+    assert format_int(27880, "uk") == "27\u00a0880"  # no-break space: never split across lines
+    assert format_compact(27880, "en") == "27.9K"
+    assert format_compact(27880, "uk") == "27,9\u00a0тис."
+    assert format_compact(972, "uk") == "972"
+
+
+def test_percentages_use_a_real_minus_sign_and_a_dash_for_missing():
+    assert format_pct(0.42) == "+42%"
+    assert format_pct(-0.2) == "\u221220%"
+    assert format_pct(None) == "\u2014"

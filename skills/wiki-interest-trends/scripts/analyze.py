@@ -349,7 +349,7 @@ def _analyze_one_target(
             # other consumer) can re-render each reason in the report's own
             # language instead of always English -- see docs/dev/stats-and-trust.md.
             "reasons": [r.render("en") for r in trust.reasons],
-            "reason_codes": [{"code": r.code, "params": r.params} for r in trust.reasons],
+            "reason_codes": [{"code": r.code, "params": r.params, "concern": r.concern} for r in trust.reasons],
         },
     }
 

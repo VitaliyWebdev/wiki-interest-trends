@@ -69,7 +69,9 @@ too niche a topic, or too new).
 
 ## When the numbers seem to contradict the chart
 
-`analyze.py`'s chart shows normalized (`per_million`) values; the metrics
+`analyze.py`'s chart shows normalized values -- `per_million` for a
+single series, rebased to an index (100 = the series' own average) when
+there are several, so editions of very different sizes share one axis; the metrics
 table and `yoy_growth_raw` use raw or normalized depending on which field
 you're looking at. If a raw-vs-normalized trend direction disagrees (flagged
 directly in the trust reasons as `trend_reverses_after_normalization`),
