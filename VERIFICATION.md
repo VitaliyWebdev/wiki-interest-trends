@@ -356,3 +356,60 @@ affected user's own sandbox settings -- there was no way to get that
 confirmation from a stranger who already moved on. The fix is safe either
 way: it makes the diagnosis more accurate whether or not sandboxing is
 the actual cause in a given case.
+
+## Stage 12e: SKILL.md's frontmatter was actually invalid YAML
+
+Prompted by a direct question -- "did we actually do everything the spec
+requires?" -- re-checked against the spec's own tooling instead of
+against our own tests, since our own tests are exactly what could share
+a blind spot with the code they're checking.
+
+The [Agent Skills spec](https://agentskills.io/specification) names a
+reference validator: `skills-ref` (CLI: `agentskills validate`). Ran it
+for the first time against this skill:
+
+```
+uvx --from skills-ref agentskills validate skills/wiki-interest-trends
+```
+
+**It failed.** `description`'s value was a bare, unquoted YAML plain
+scalar containing "Ukrainian keywords for triggering: інтерес до теми,
+...", and a colon-space sequence *inside* a plain scalar is invalid YAML
+-- both `skills-ref` (which parses with `strictyaml`) and plain PyYAML
+independently rejected it with the same parse error.
+
+**Our own `test_skill_md.py` never caught this**, and that's the more
+important finding: it read frontmatter with a hand-rolled per-line
+`key: value` string split, which happily returned a `description` value
+without ever attempting real YAML parsing. Every one of its checks
+passed on a file the spec's own reference implementation would reject
+outright -- a textbook case of a test suite sharing its author's blind
+spot with the code, because both trusted the same lenient hand-rolled
+parse instead of the real grammar. `claude plugin validate .` didn't
+catch it either -- it validates the plugin/marketplace manifests, not
+SKILL.md's own frontmatter, so it isn't a substitute for `skills-ref`.
+
+Fixed:
+- `description` rewritten as a YAML folded block scalar (`>-` across
+  several indented lines) instead of one unquoted line. Verified by
+  parsing the new frontmatter and asserting the round-tripped string is
+  byte-for-byte identical to the original description -- this was a
+  formatting change only, the actual text content didn't change.
+- `skills-ref==0.1.1` added to `requirements.txt` (test-only).
+- `test_skill_md.py` rewritten to parse frontmatter with `skills-ref`'s
+  own `parse_frontmatter` (real YAML, not string-splitting), and a new
+  `test_passes_the_official_agent_skills_reference_validator` runs
+  `skills_ref.validate()` itself -- the actual authoritative check, not
+  our interpretation of it.
+
+`uvx --from skills-ref agentskills validate skills/wiki-interest-trends`
+now prints `Valid skill: skills/wiki-interest-trends`. Full suite: 128
+passed. `claude plugin validate .`: clean.
+
+Answering the question this stage started from: yes, modulo this one
+real defect, which is now fixed and now has a test that would have
+caught it from the start. There's no remaining known gap against the
+spec as of this commit -- but that claim is only as strong as the
+checks that exist, which is exactly why this stage replaced a
+hand-rolled check with the spec's own validator rather than just
+patching the one YAML error and moving on.

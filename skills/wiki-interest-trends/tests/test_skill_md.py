@@ -1,20 +1,33 @@
 import re
 from pathlib import Path
 
-SKILL_MD = Path(__file__).parent.parent / "SKILL.md"
+from skills_ref import validate as skills_ref_validate
+from skills_ref.parser import parse_frontmatter
+
+SKILL_DIR = Path(__file__).parent.parent
+SKILL_MD = SKILL_DIR / "SKILL.md"
 
 
 def _frontmatter_and_body():
-    text = SKILL_MD.read_text()
-    assert text.startswith("---\n"), "SKILL.md must start with YAML frontmatter"
-    _, frontmatter, body = text.split("---", 2)
-    fields = {}
-    for line in frontmatter.strip().splitlines():
-        if line.startswith(" ") or ":" not in line:
-            continue
-        key, _, value = line.partition(":")
-        fields[key.strip()] = value.strip()
-    return fields, body
+    # Real YAML parsing, not hand-rolled line-splitting -- a naive
+    # per-line `key: value` split previously read a `description` value
+    # just fine even though it was invalid YAML (a bare "word: word"
+    # inside an unquoted plain scalar). skills-ref uses the same strict
+    # parser the reference validator below runs, so a test built on it
+    # can't pass on frontmatter the spec's own tooling would reject.
+    text = SKILL_MD.read_text(encoding="utf-8")
+    return parse_frontmatter(text)
+
+
+def test_passes_the_official_agent_skills_reference_validator():
+    # The authoritative check: the same `skills-ref` validator the spec
+    # itself points to (agentskills.io/specification#validation). Real
+    # incident this caught: our `description` field was invalid YAML
+    # (an unquoted "word: word" sequence broke strict parsing) despite
+    # every hand-written check below passing, because those checks never
+    # actually ran a YAML parser over the file.
+    errors = skills_ref_validate(SKILL_DIR)
+    assert errors == [], errors
 
 
 def test_name_matches_agent_skills_spec_and_directory_name():
@@ -27,11 +40,8 @@ def test_name_matches_agent_skills_spec_and_directory_name():
 
 
 def test_description_within_length_and_has_no_angle_brackets():
-    text = SKILL_MD.read_text()
-    _, frontmatter, _ = text.split("---", 2)
-    m = re.search(r"^description:\s*(.+)$", frontmatter, re.MULTILINE)
-    assert m, "description field not found"
-    description = m.group(1)
+    fields, _ = _frontmatter_and_body()
+    description = fields["description"]
 
     assert 1 <= len(description) <= 1024
     assert "<" not in description

@@ -6,3 +6,4 @@ pytest==9.1.1
 matplotlib==3.11.2
 reportlab==5.0.1
 pypdf==6.19.0  # test-only: used to assert report.pdf is exactly one page
+skills-ref==0.1.1  # test-only: the spec's own reference validator, see test_skill_md.py
