@@ -91,3 +91,13 @@ def test_body_tells_agent_to_reattempt_instead_of_trusting_a_stale_network_concl
 
     assert "without actually" in body.lower() or "re-attempt" in body.lower()
     assert "earlier" in body.lower() and "conversation" in body.lower()
+
+
+def test_body_tells_agent_to_offer_a_pdf_when_not_asked_for_one():
+    # The PDF report is the skill's most shareable output, but a plain
+    # question ("is interest growing?") only gets a chat answer. Without an
+    # explicit offer, users never learn the PDF exists.
+    _, body = _frontmatter_and_body()
+
+    assert "offer to make one" in body
+    assert "report.py" in body

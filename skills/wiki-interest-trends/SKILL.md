@@ -127,9 +127,13 @@ be inside the base directory -- use the full path from the start.)
    generate the actual file, don't treat a well-formatted chat answer as a
    substitute:
    `uv run scripts/report.py --analysis-json <path from step 2> --lang <user's language> --summary "<your conclusion>"`
-   Skip this step only when the user just asked a direct question in
-   passing ("is interest growing?") with no indication they want something
-   to share.
+   If the user just asked a direct question in passing ("is interest
+   growing?") with no indication they want something to share, don't
+   generate the PDF unasked -- but **always end your answer with a
+   one-line offer to make one**, in the user's language, e.g. "Хочете,
+   я зроблю з цього PDF-звіт на одну сторінку з графіком?" If they say
+   yes, run `report.py` on the same `analysis_json` -- no need to call
+   `analyze.py` again.
 
 ## Examples
 
