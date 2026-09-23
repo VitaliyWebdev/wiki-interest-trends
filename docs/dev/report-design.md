@@ -143,7 +143,8 @@ To mark reasons ✓ / !, `analysis.json`'s `reason_codes[]` now carries
 re-derive which codes count against the level (see `stats-and-trust.md`).
 An older `analysis.json` without the flag still renders, with neutral `•`
 markers. A strong trend's p-value used to print as "p=0.000", which reads
-as "impossible"; it's "p<0.001" now.
+as "impossible"; it's "p<0.001" now. View counts in reasons use the same
+thousands separator as the table.
 
 ## Considered, not done
 

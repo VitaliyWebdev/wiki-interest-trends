@@ -104,7 +104,11 @@ each reason ✓ / ! without re-deriving these rules.
 `test_every_reason_says_whether_it_counts_against_the_level` checks the
 flags reproduce the level (concern count 0/1/2+). `render_reason` shows a
 p-value below 0.001 as "p<0.001" rather than the "p=0.000" the `.3f`
-format used to give.
+format used to give. View counts in reasons go through `i18n.format_int`
+("328,950" / "328 950"), matching the report's table; they used to print
+"328950" right next to the table's "328 950". Both display forms are
+derived in `render_reason` from the raw params, so `analysis.json` keeps
+plain numbers.
 
 **The rule, spelled out** (matches the five factors the spec names
 explicitly): below 12 months of data, short-circuit straight to `"low"` —

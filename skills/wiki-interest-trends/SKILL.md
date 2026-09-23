@@ -208,10 +208,12 @@ uv run scripts/report.py --analysis-json wikitrends-out/<run-id>/analysis.json -
   normalized, the edition itself is shrinking. A real eval run said
   "English Wikipedia itself gets more traffic" when those numbers
   (-20% raw vs. -14% normalized) showed the opposite. Outside causes
-  (the pandemic, AI answers, the news) are never in the JSON either: a
-  guess can go in your chat answer, labeled as a guess, but never in
-  `report.py --summary`, which gets shared as fact. A real eval run
-  printed "This reflects a shift from the pandemic-era spike" into a PDF.
+  and outside facts (the pandemic, AI answers, "interest is growing
+  globally") are never in the JSON either: a guess can go in your chat
+  answer, labeled as a guess, but `report.py --summary` states only what
+  the JSON shows, because it gets shared as fact. Real eval runs printed
+  "This reflects a shift from the pandemic-era spike" and "Globally,
+  interest is growing" into PDFs.
 - **If you didn't generate a PDF, your answer's last line is the one-line
   PDF offer** from Workflow step 4, in the user's language. Put it after
   any other follow-up suggestion, never in place of one. A real English

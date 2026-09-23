@@ -14,6 +14,7 @@ MONTHS_SHORT = {
 THOUSANDS_SEP = {"en": ",", "uk": "\u00a0"}
 DECIMAL_SEP = {"en": ".", "uk": ","}
 THOUSAND_SUFFIX = {"en": "K", "uk": "\u00a0тис."}
+MILLION_SUFFIX = {"en": "M", "uk": "\u00a0млн"}
 MINUS = "\u2212"  # a real minus sign, not a hyphen
 
 
@@ -34,11 +35,17 @@ def format_int(value: float, lang: str) -> str:
 
 
 def format_compact(value: float, lang: str) -> str:
-    """27880 -> "27.9K" / "27,9 тис." (no-break space) -- for KPI cards, where
-    the exact number is in the table right below."""
+    """27880 -> "27.9K" / "27,9 тис." (no-break space), 328950 -> "329K",
+    1260000 -> "1.3M" -- for KPI cards, where the exact number is in the
+    table right below. One decimal only while it adds a meaningful digit:
+    never "329.0K" or "14.0K"."""
     if abs(value) < 1000:
         return format_int(value, lang)
-    return f"{value / 1000:.1f}".replace(".", pick(DECIMAL_SEP, lang)) + pick(THOUSAND_SUFFIX, lang)
+    # From 999,500 up the thousands form would print "1000K".
+    size, suffix = (1_000_000, MILLION_SUFFIX) if abs(value) >= 999_500 else (1000, THOUSAND_SUFFIX)
+    scaled = value / size
+    text = f"{scaled:.0f}" if abs(scaled) >= 99.95 else f"{scaled:.1f}".removesuffix(".0")
+    return text.replace(".", pick(DECIMAL_SEP, lang)) + pick(suffix, lang)
 
 
 def format_pct(value: Optional[float]) -> str:

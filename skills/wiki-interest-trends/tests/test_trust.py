@@ -95,6 +95,14 @@ def test_every_reason_says_whether_it_counts_against_the_level():
     assert all(not r.concern for r in assess_trust(**solid_inputs()).reasons)
 
 
+def test_view_counts_in_reasons_use_the_languages_thousands_separator():
+    # The table printed "328 950" while the reasons next to it said "328950".
+    reason = Reason("high_volume", {"avg_views": 328950.4})
+
+    assert "328,950 views/month" in render_reason(reason, "en")
+    assert "328\u00a0950 переглядів/міс" in render_reason(reason, "uk")
+
+
 def test_a_very_small_p_value_is_shown_as_below_a_threshold_not_as_zero():
     assert "p<0.001" in render_reason(Reason("trend_significant", {"p_value": 0.00002}), "en")
     assert "p=0.007" in render_reason(Reason("trend_significant", {"p_value": 0.0069}), "uk")

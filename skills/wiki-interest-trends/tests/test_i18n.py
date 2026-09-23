@@ -33,6 +33,7 @@ def test_every_user_facing_string_table_covers_every_supported_language():
         "i18n.THOUSANDS_SEP": i18n.THOUSANDS_SEP,
         "i18n.DECIMAL_SEP": i18n.DECIMAL_SEP,
         "i18n.THOUSAND_SUFFIX": i18n.THOUSAND_SUFFIX,
+        "i18n.MILLION_SUFFIX": i18n.MILLION_SUFFIX,
         **{f"trust.REASON_TEMPLATES[{code}]": t for code, t in REASON_TEMPLATES.items()},
     }
     for name, table in tables.items():
@@ -54,6 +55,17 @@ def test_numbers_use_each_languages_own_separators():
     assert format_compact(27880, "en") == "27.9K"
     assert format_compact(27880, "uk") == "27,9\u00a0тис."
     assert format_compact(972, "uk") == "972"
+
+
+def test_compact_numbers_keep_a_decimal_only_while_it_adds_a_digit():
+    # A live report showed "329,0 тис." -- the ",0" says nothing.
+    assert format_compact(328950, "uk") == "329\u00a0тис."
+    assert format_compact(328950, "en") == "329K"
+    assert format_compact(14000, "en") == "14K"
+    assert format_compact(1_260_000, "en") == "1.3M"
+    assert format_compact(1_260_000, "uk") == "1,3\u00a0млн"
+    assert format_compact(999_700, "en") == "1M"  # not "1000K"
+    assert format_compact(960_000, "en") == "960K"
 
 
 def test_percentages_use_a_real_minus_sign_and_a_dash_for_missing():
