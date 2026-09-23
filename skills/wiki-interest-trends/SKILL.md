@@ -4,16 +4,17 @@ description: >-
   Analyzes interest in a topic over time using Wikipedia pageview statistics
   across language editions -- compares growth, trend significance, and a
   confidence ("trust") level between languages or topics, and can produce a
-  one-page PDF report with a chart. Use when researching audience/market
-  interest for a product idea, deciding which languages or countries to
-  localize or launch into, checking whether interest in a topic is growing
-  or declining, comparing topic popularity across language editions, or
-  preparing a founder/stakeholder-facing report backed by real data. Not for
-  measuring purchase intent, ad-hoc trivia lookups, or
-  real-time/breaking-news monitoring. Ukrainian keywords for triggering:
-  інтерес до теми, тренди Wikipedia, чи росте попит, вибір мов для
-  локалізації, порівняння ринків, аналіз популярності, перегляди статей,
-  довіра до тренду.
+  one-page PDF report with a chart, in English or Ukrainian. Use when
+  researching audience/market interest for a product idea, deciding which
+  languages or countries to localize or launch into, checking whether
+  interest in a topic is growing or declining, comparing topic popularity
+  across language editions, or preparing a founder/stakeholder-facing report
+  backed by real data. Not for measuring purchase intent, ad-hoc trivia
+  lookups, or real-time/breaking-news monitoring. English trigger phrases:
+  is interest in X growing, Wikipedia pageviews, which market to launch in,
+  interest trend report. Ukrainian trigger phrases: інтерес до теми, тренди
+  Wikipedia, чи росте попит, вибір мов для локалізації, порівняння ринків,
+  аналіз популярності, перегляди статей, довіра до тренду.
 compatibility: Requires uv (auto-installed by this skill if missing; uv manages its own Python, no separate Python install needed) and network access to www.wikidata.org, wikimedia.org, and a *.wikipedia.org host per requested language (e.g. en.wikipedia.org, uk.wikipedia.org).
 metadata:
   version: "1.0"
@@ -130,8 +131,9 @@ be inside the base directory -- use the full path from the start.)
    If the user just asked a direct question in passing ("is interest
    growing?") with no indication they want something to share, don't
    generate the PDF unasked -- but **always end your answer with a
-   one-line offer to make one**, in the user's language, e.g. "Хочете,
-   я зроблю з цього PDF-звіт на одну сторінку з графіком?" If they say
+   one-line offer to make one**, in the user's language, e.g. "Want me
+   to turn this into a one-page PDF report with a chart?" / "Хочете, я
+   зроблю з цього PDF-звіт на одну сторінку з графіком?" If they say
    yes, run `report.py` on the same `analysis_json` -- no need to call
    `analyze.py` again.
 
@@ -165,6 +167,16 @@ uv run scripts/report.py --analysis-json wikitrends-out/<run-id>/analysis.json -
   --summary "<your conclusion, in the user's language>"
 ```
 
+**Asked in English, with a report** ("Is interest in astronomy growing
+on English and Ukrainian Wikipedia? Put it in a short PDF."):
+```
+uv run scripts/resolve_topic.py --query "astronomy" --query-lang en --langs en,uk
+uv run scripts/analyze.py --qids Q333 --langs en,uk --last 24m
+uv run scripts/report.py --analysis-json wikitrends-out/<run-id>/analysis.json --lang en \
+  --question "<the user's original question>" \
+  --summary "<your conclusion, in English>"
+```
+
 ## How to write conclusions
 
 - **Use only numbers that appear in the JSON.** Don't round further,
@@ -187,6 +199,17 @@ uv run scripts/report.py --analysis-json wikitrends-out/<run-id>/analysis.json -
 - **A missing language (`"found": false`) is a real finding**, not a
   gap to paper over -- "there's no Polish Wikipedia article on this
   topic" is itself useful information about localization priority.
+- **Don't add causes the JSON doesn't state.** Paraphrase a trust reason,
+  but don't extend it. In particular, whether a language edition's own
+  traffic is growing or shrinking is only known by comparing
+  `yoy_growth_raw` with `yoy_growth_normalized`. If raw falls faster than
+  normalized, the edition itself is shrinking. A real eval run said
+  "English Wikipedia itself gets more traffic" when those numbers
+  (-20% raw vs. -14% normalized) showed the opposite.
+- **If you didn't generate a PDF, your answer's last line is the one-line
+  PDF offer** from Workflow step 4, in the user's language. Put it after
+  any other follow-up suggestion, never in place of one. A real English
+  eval run dropped it in favor of a different follow-up question.
 
 ## Repeat / follow-up queries
 
@@ -218,14 +241,29 @@ Quick reference:
 
 ## Language
 
-**Answer the user, and write `--question`/`--summary` for `report.py`, in
-the language the user is asking in.** `report.py --lang` natively
-localizes its own template text (headers, trend/trust labels, trust
-reasons) in Ukrainian and English; pass the closest of the two if the
-user's language isn't one of those (the templates fall back to English,
-but your own summary text should still be written in the user's actual
-language). `SKILL.md` itself is in English by convention, but nothing
-you say to the user should be.
+This skill works the same in **English and Ukrainian**. Work out which
+one the user is writing in from their own message, and keep to it for
+the whole answer. Three different "language" settings are involved, and
+they're independent of each other:
+
+- **The answer language** is the user's language. Write your answer, the
+  one-line PDF offer, and `report.py`'s `--question`/`--summary` in it.
+  `trust.reasons` and error hints in the JSON are English. Paraphrase them
+  in the user's language instead of pasting English into a Ukrainian answer.
+- **`report.py --lang`** is the PDF's language: `en` or `uk`, matching the
+  answer language. Headings, table values, trust reasons, and the chart
+  are all rendered in it. For any other language pass `en` (the
+  fallback), but still write `--question`/`--summary` in the user's own
+  language.
+- **Which Wikipedia editions to analyze** (`--langs`, or `analyze.py
+  --lang` with `--titles`) has nothing to do with the user's language: an
+  English speaker can ask about the Ukrainian edition, and vice versa.
+  `resolve_topic.py --query-lang` is the language the *topic name* is
+  written in. For example, "Is interest in Шевченко growing?" means
+  `--query-lang uk`, with the answer still in English.
+
+`SKILL.md` and `references/` are in English by convention, but nothing
+you say to the user should be unless they wrote in English.
 
 ## Details, on demand
 

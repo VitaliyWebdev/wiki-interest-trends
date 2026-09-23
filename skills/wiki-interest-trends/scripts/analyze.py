@@ -318,7 +318,6 @@ def _analyze_one_target(
         **target,
         "found": True,
         "raw": [{"timestamp": p.timestamp, "views": p.views} for p in series.points],
-        "normalized_points": normalized,  # NormalizedPoint objects, for chart.py -- stripped before writing analysis.json
         "normalized": [
             {
                 "timestamp": p.timestamp,
@@ -380,15 +379,10 @@ def analyze(
         for t in targets
     ]
 
-    chart_series = {
-        r["label"]: r["normalized_points"] for r in results if r["found"]
-    }
+    chart_series = {r["label"]: r["normalized"] for r in results if r["found"]}
     chart_path = run_dir / "chart.png"
-    render_chart(chart_series, chart_path, title="Wikipedia pageview trend")
+    render_chart(chart_series, chart_path)
 
-    results_for_json = [
-        {k: v for k, v in r.items() if k != "normalized_points"} for r in results
-    ]
     analysis = {
         "ok": True,
         "query": {
@@ -396,7 +390,7 @@ def analyze(
             "start": start, "end": end, "granularity": granularity,
             "include_redirects": include_redirects,
         },
-        "series": results_for_json,
+        "series": results,
         "chart_path": str(chart_path),
     }
     analysis_path = run_dir / "analysis.json"

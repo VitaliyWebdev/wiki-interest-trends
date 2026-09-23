@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["reportlab==5.0.1"]
+# dependencies = ["reportlab==5.0.1", "matplotlib==3.11.2"]
 # ///
 """report.py -- turn analyze.py's analysis.json into a one-page PDF report.
 
@@ -35,8 +35,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Table, TableStyle
 
+from wikitrends.chart import render_chart
 from wikitrends.cli import run_cli
 from wikitrends.errors import AppError
+from wikitrends.i18n import DEFAULT_LANG, SUPPORTED_LANGS, pick
 from wikitrends.trust import Reason, render_reason
 
 FONTS_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
@@ -80,13 +82,6 @@ LABELS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def _labels(lang: str) -> Dict[str, Any]:
-    """At least uk/en per the spec; any other --lang falls back to en
-    rather than KeyError -- an unsupported report language shouldn't be a
-    hard failure, just a less localized report."""
-    return LABELS.get(lang, LABELS["en"])
-
-
 def _register_fonts() -> None:
     regular = FONTS_DIR / "DejaVuSans.ttf"
     bold = FONTS_DIR / "DejaVuSans-Bold.ttf"
@@ -123,7 +118,7 @@ def generate_report(
     analysis: Dict[str, Any],
     *,
     output_path: Path,
-    lang: str = "uk",
+    lang: str = DEFAULT_LANG,
     title: Optional[str] = None,
     question: Optional[str] = None,
     summary: Optional[str] = None,
@@ -134,7 +129,7 @@ def generate_report(
     pagination to fight -- a single Canvas with one showPage()/save() call
     structurally cannot produce a second page; the only risk is visual
     crowding, which MAX_TABLE_ROWS and conservative sizing manage."""
-    labels = _labels(lang)
+    labels = pick(LABELS, lang)
     _register_fonts()
     generated_at = generated_at or datetime.now(timezone.utc)
 
@@ -175,8 +170,14 @@ def generate_report(
     paragraph(summary or labels["no_conclusion"], max_lines=4)
     y -= 3 * mm
 
-    chart_path = analysis.get("chart_path")
-    if chart_path and Path(chart_path).exists():
+    series = [s for s in analysis.get("series", []) if s.get("found")]
+    not_found = [s for s in analysis.get("series", []) if not s.get("found")]
+
+    if series:
+        # Redrawn here rather than reusing analyze.py's chart.png: that one
+        # is drawn before the report's language is known.
+        chart_path = output_path.with_suffix(".chart.png")
+        render_chart({s["label"]: s["normalized"] for s in series}, chart_path, lang=lang)
         heading(labels["chart"], size=9.5)
         img_h = 55 * mm
         img_w = content_w
@@ -186,9 +187,6 @@ def generate_report(
         )
         y -= img_h + 4 * mm
 
-    series = [s for s in analysis.get("series", []) if s.get("found")]
-    not_found = [s for s in analysis.get("series", []) if not s.get("found")]
-    if series:
         rows = [labels["table_header"]]
         for s in series[:MAX_TABLE_ROWS]:
             m = s["metrics"]
@@ -290,7 +288,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--analysis-json", required=True, help="Path to analyze.py's analysis.json")
-    parser.add_argument("--lang", default="uk", help="Report language: uk or en (default: uk)")
+    parser.add_argument(
+        "--lang", default=DEFAULT_LANG,
+        help=(
+            f"Report language: {' or '.join(SUPPORTED_LANGS)} -- pass the language the user "
+            f"is writing in; any other code falls back to {DEFAULT_LANG} (default: {DEFAULT_LANG})"
+        ),
+    )
     parser.add_argument("--title", help="Custom report title")
     parser.add_argument("--question", help="The user's original question, shown at the top")
     parser.add_argument("--summary", help="The agent's conclusion, based on the numbers in analysis.json")

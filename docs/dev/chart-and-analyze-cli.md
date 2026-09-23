@@ -6,11 +6,19 @@
 ## `chart.py`
 
 ```python
-render_chart(series_by_label: dict[str, list[NormalizedPoint]], output_path: Path, title: str) -> None
+render_chart(series_by_label: dict[str, list[dict]], output_path: Path, lang: str = "en") -> None
 ```
 
 One PNG, one line per label ("Article title (lang)"), each series's own
-peak month annotated. Headless (`matplotlib.use("Agg")` — this only ever
+peak month annotated. Points are `analysis.json`'s own
+`series[].normalized` dicts (`timestamp`, `per_million`, ...), not
+`NormalizedPoint` objects — so `analyze.py` and `report.py` draw from the
+exact same data, and `chart.py` doesn't import `pageviews.py` (which would
+drag `requests` into `report.py`'s PEP 723 environment). Title, y-axis
+label and the "peak" annotation come from `CHART_LABELS[lang]` via
+`i18n.pick` (see `i18n.md`); `analyze.py` draws its `chart.png` in the
+default language, and `report.py` redraws its own in the report's
+language. Headless (`matplotlib.use("Agg")` — this only ever
 runs from a CLI script, never a GUI). A label with an empty point list is
 skipped when drawing, and `ax.legend()` only fires if at least one line
 was actually plotted — an earlier version called `legend()` whenever the
@@ -108,10 +116,12 @@ trust reasons list go in `analysis.json`. Stdout gets one line per series
 (`label`, `lang`, `qid`, `found`, and — only if found —
 `yoy_growth`/`trend`/`trust_level`) plus the file paths, staying well
 under the ~40-line budget regardless of how many topics/languages were
-requested. `normalized_points` (the actual `NormalizedPoint` objects, kept
-around only so `chart.py` doesn't need re-parsing dicts back into objects)
-is stripped before writing `analysis.json` — asserted directly in
-`test_analyze_qids_mode_found_article_writes_analysis_and_chart`.
+requested. `series[].normalized` is part of the contract, not just a
+debug dump: `report.py` redraws the chart from it, which
+`test_analyze_qids_mode_found_article_writes_analysis_and_chart` asserts.
+(An earlier version also carried a `normalized_points` copy as
+`NormalizedPoint` objects just for `chart.py`, stripped before writing the
+JSON; `chart.py` now takes the dicts directly, so that copy is gone.)
 
 ## `--qids` vs `--titles`: a judgment call worth flagging
 

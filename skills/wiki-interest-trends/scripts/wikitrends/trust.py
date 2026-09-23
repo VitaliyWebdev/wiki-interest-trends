@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from .i18n import DEFAULT_LANG, pick
+
 MIN_MONTHS_FOR_ANY_TREND = 12
 MIN_MONTHS_FOR_HIGH = 24
 
@@ -87,16 +89,15 @@ class Reason:
     code: str
     params: Dict[str, Any] = field(default_factory=dict)
 
-    def render(self, lang: str = "en") -> str:
+    def render(self, lang: str = DEFAULT_LANG) -> str:
         return render_reason(self, lang)
 
 
-def render_reason(reason: Reason, lang: str = "en") -> str:
-    templates = REASON_TEMPLATES.get(reason.code, {})
-    template = templates.get(lang) or templates.get("en")
-    if template is None:
+def render_reason(reason: Reason, lang: str = DEFAULT_LANG) -> str:
+    templates = REASON_TEMPLATES.get(reason.code)
+    if not templates:
         return reason.code
-    return template.format(**reason.params)
+    return pick(templates, lang).format(**reason.params)
 
 
 @dataclass

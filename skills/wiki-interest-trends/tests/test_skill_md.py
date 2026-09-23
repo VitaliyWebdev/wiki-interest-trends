@@ -101,3 +101,23 @@ def test_body_tells_agent_to_offer_a_pdf_when_not_asked_for_one():
 
     assert "offer to make one" in body
     assert "report.py" in body
+
+
+def test_description_has_trigger_phrases_in_both_supported_languages():
+    # The description is the only text an agent sees before deciding to
+    # load the skill. An English-only description is known to silently
+    # never trigger for users writing in another language
+    # (anthropics/claude-code#68086), so each supported language needs its
+    # own literal user phrases here.
+    fields, _ = _frontmatter_and_body()
+    description = fields["description"]
+
+    assert "is interest in X growing" in description
+    assert "чи росте попит" in description
+
+
+def test_body_shows_report_language_for_both_supported_languages():
+    _, body = _frontmatter_and_body()
+
+    assert "--lang en" in body
+    assert "--lang uk" in body

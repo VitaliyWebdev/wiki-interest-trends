@@ -92,7 +92,7 @@ report always has something to say about *why*, not just the label.
 `Reason(code, params)` is structured, not a pre-formatted English
 sentence — `render_reason(reason, lang)` renders it from
 `REASON_TEMPLATES[code][lang]`, with English as the fallback for an
-unsupported language. This changed after `report.py` was actually run and
+unsupported language (the shared `i18n.pick` rule — see `i18n.md`). This changed after `report.py` was actually run and
 produced a Ukrainian-language report with the limitations section stuck in
 English (the reasons were hardcoded English strings); see
 `docs/dev/report-pdf.md` for the full story. `analyze.py` writes both

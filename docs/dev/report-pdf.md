@@ -53,6 +53,32 @@ specifically to catch "added a new reason in English, forgot the
 translation" before it ships, rather than relying on someone reading a PDF
 again.
 
+## The chart was the last English part of a Ukrainian report
+
+Bug #2's fix localized every piece of *text* on the page, but the chart is
+an image: `report.py` used to embed `analyze.py`'s `chart.png` as-is, and
+that one is drawn before anyone knows what language the report will be
+in, so its title, y-axis label and "peak" markers were always English.
+`pypdf` text extraction can't see text inside an image, so no text-based
+test could have caught it.
+
+**Fix:** `report.py` no longer uses `analysis["chart_path"]`. It redraws
+the chart itself with `render_chart(..., lang=lang)` from
+`series[].normalized` in `analysis.json`, writes it next to the PDF as
+`<report>.chart.png`, and embeds that. No series with data means no chart
+section at all, instead of an empty plot. That's why `report.py`'s PEP 723
+header now also lists `matplotlib`. It still doesn't need `requests`,
+because `chart.py` takes plain dicts and no longer imports `pageviews.py`.
+`test_generate_report_renders_its_own_chart_in_the_report_language`
+checks that the report redraws the chart in its own language, and
+`test_render_chart_uses_labels_in_the_requested_language` checks that the
+chart really draws the Ukrainian strings.
+
+`--lang` defaults to `en` (`i18n.DEFAULT_LANG`), which is also the
+fallback for unsupported languages. It used to default to `uk`. Neither
+default is right for everyone, so the agent is told to always pass it
+explicitly; the default only decides what happens when it forgets.
+
 ## Why raw `canvas`, not `Platypus`/`SimpleDocTemplate`
 
 reportlab has two APIs: a low-level `Canvas` you draw onto directly, and a

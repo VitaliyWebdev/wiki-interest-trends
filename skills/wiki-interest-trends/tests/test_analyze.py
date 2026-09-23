@@ -122,7 +122,9 @@ def test_analyze_qids_mode_found_article_writes_analysis_and_chart(tmp_path):
     assert analysis["series"][0]["found"] is True
     assert analysis["series"][0]["article"] == "Інтервальне голодування"
     assert analysis["series"][0]["metrics"]["months_of_data"] == 4
-    assert "normalized_points" not in analysis["series"][0]  # internal-only, must not leak into the JSON file
+    # report.py redraws its chart from this, so it's part of the contract.
+    assert len(analysis["series"][0]["normalized"]) == 4
+    assert set(analysis["series"][0]["normalized"][0]) == {"timestamp", "views", "project_total", "per_million"}
 
     assert Path(result["chart_png"]).exists()
     assert Path(result["chart_png"]).read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
