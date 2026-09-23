@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Optional
 
-from .i18n import DEFAULT_LANG, pick
+from .i18n import DEFAULT_LANG, format_int, pick
 
 MIN_MONTHS_FOR_ANY_TREND = 12
 MIN_MONTHS_FOR_HIGH = 24
@@ -34,16 +34,16 @@ REASON_TEMPLATES: Dict[str, Dict[str, str]] = {
         "uk": "{months} міс. даних — достатньо для порівняння повних років.",
     },
     "low_volume": {
-        "en": "Average of {avg_views:.0f} views/month is low -- small numbers are noisy, month-to-month swings can look like a trend.",
-        "uk": "У середньому {avg_views:.0f} переглядів/міс — це мало, малі числа шумні, місячні коливання можуть виглядати як тренд.",
+        "en": "Average of {views} views/month is low -- small numbers are noisy, month-to-month swings can look like a trend.",
+        "uk": "У середньому {views} переглядів/міс — це мало, малі числа шумні, місячні коливання можуть виглядати як тренд.",
     },
     "moderate_volume": {
-        "en": "Average of {avg_views:.0f} views/month is moderate -- more views would make the trend more reliable.",
-        "uk": "У середньому {avg_views:.0f} переглядів/міс — помірно, більше переглядів зробило б тренд надійнішим.",
+        "en": "Average of {views} views/month is moderate -- more views would make the trend more reliable.",
+        "uk": "У середньому {views} переглядів/міс — помірно, більше переглядів зробило б тренд надійнішим.",
     },
     "high_volume": {
-        "en": "Average of {avg_views:.0f} views/month -- enough volume that month-to-month noise is less of a concern.",
-        "uk": "У середньому {avg_views:.0f} переглядів/міс — достатній обсяг, щоб місячний шум менше турбував.",
+        "en": "Average of {views} views/month -- enough volume that month-to-month noise is less of a concern.",
+        "uk": "У середньому {views} переглядів/міс — достатній обсяг, щоб місячний шум менше турбував.",
     },
     "trend_significance_unknown": {
         "en": "Trend significance could not be computed.",
@@ -101,10 +101,14 @@ def render_reason(reason: Reason, lang: str = DEFAULT_LANG) -> str:
     templates = REASON_TEMPLATES.get(reason.code)
     if not templates:
         return reason.code
+    # Display forms derived from the raw params, so analysis.json keeps
+    # plain numbers and every language formats them its own way.
     params = dict(reason.params)
     if params.get("p_value") is not None:
         # A strong trend's p rounds to "p=0.000", which reads as "impossible".
         params["p"] = "p<0.001" if params["p_value"] < 0.001 else f"p={params['p_value']:.3f}"
+    if params.get("avg_views") is not None:
+        params["views"] = format_int(params["avg_views"], lang)  # "328,950" / "328 950"
     return pick(templates, lang).format(**params)
 
 

@@ -651,3 +651,37 @@ the transcripts confirm the branch copy was loaded):
 **Not fixed here, flagged separately:** with `--granularity daily`,
 `analyze.py`/`trust.py` count daily points as months ("29 months of data",
 "views/mo"). This predates this change; the report just makes it visible.
+
+## Stage 14b: first check through the installed plugin, and three fixes
+
+Updated the installed plugin to `4c00dd8`
+(`claude plugin marketplace update` + `claude plugin update`), confirmed
+its cache matches `main` (`diff -rq`), then ran Haiku in an empty
+directory with no skill copy. The transcript's "Base directory for this
+skill" was the plugin's marketplace clone, so the installed plugin was the
+one used. Prompt: "Чи росте інтерес до штучного інтелекту в українській та
+англійській Вікіпедії? Зроби короткий PDF-звіт, який я покажу команді."
+Q11660, en+uk, one-page Ukrainian PDF in the new design. The grey "+3%"
+for a non-significant trend next to the red "▼ −35%" worked as intended.
+
+`installed_plugins.json`'s `gitCommitSha` still showed the old commit
+after the update, while `version`/`installPath` were new. The reliable
+check is `claude plugin list` (`Version: 4c00dd89a938`).
+
+Three problems it showed, fixed on `fix/report-polish`:
+1. **An outside fact in `--summary`**: "Глобально інтерес зростає". The
+   Stage 14 rule only covered outside *causes*. SKILL.md now says
+   `--summary` states only what the JSON shows.
+2. **"329,0 тис."** on a card. `format_compact` now drops a decimal that
+   adds nothing, and switches to millions at the right boundary.
+3. **"328950 переглядів/міс"** in the reasons, next to the table's
+   "328 950". Reason templates now format views with the language's
+   separator.
+
+Verified: 166 tests passed. `report.py` via `uv run` on the same
+`analysis.json` gives "329 тис." and "328 950 переглядів/міс" (PNG looked
+at, PDF text checked). The same Haiku prompt re-run with this branch's
+skill (base directory confirmed) passed `--summary "В українській Вікіпедії
+інтерес спадає на 35% за рік. В англійській Вікіпедії практично немає
+тренду (+ 3%). Дані охоплюють 24 місяці і є надійними."`, with no outside
+claims, and none in the chat answer either.
