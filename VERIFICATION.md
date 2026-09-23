@@ -297,3 +297,62 @@ network, echoed in `SKILL.md`'s error table and
 `references/interpreting.md` with this incident as the worked example.
 Locked in with a test asserting the hint actually contains the `curl`
 command, not just generic advice.
+
+## Stage 12d: found and fixed the likely actual root cause, not just the symptom
+
+Stage 12c's fix made the diagnosis *safer* to give (verify before
+blaming the network), but didn't explain *why* two independent people hit
+this at all. Researched it (official Claude Code sandboxing docs,
+`code.claude.com/docs/en/sandboxing`) rather than guessing, and found a
+concrete, well-documented mechanism that fits both incidents:
+
+- Claude Code's sandboxed Bash tool "pre-allows no domains by default";
+  each new host a sandboxed command touches needs approval, and in auto
+  mode that approval is scoped to a single command, not the session.
+- An unapproved host is refused silently at the sandbox/proxy level --
+  no prompt, no distinct signal reaching the Python process, just a
+  connection failure indistinguishable from a real network problem.
+- Grepped the skill's own source and confirmed it talks to **three
+  different host patterns**: `www.wikidata.org`, `wikimedia.org`
+  (pageviews REST API, no `www.`), and a *new* `<lang>.wikipedia.org`
+  host per requested language (redirect resolution) --
+  `scripts/wikitrends/wikidata.py:9,90` and
+  `scripts/wikitrends/pageviews.py:10,128`.
+- Stage 12c's `curl` verification command was **hardcoded to
+  `www.wikidata.org` regardless of which URL actually failed** -- so if
+  the real block was on `wikimedia.org` or a specific `xx.wikipedia.org`,
+  the verification would give a false "all clear, just retry" when the
+  host really was blocked and needed approving, not retrying. This also
+  explains the original incident's pattern exactly: the user's own manual
+  `curl`/`uv run` test ran *outside* Claude Code's Bash tool entirely (no
+  sandbox at all), so of course it worked, while the agent's run of the
+  identical command went through the sandboxed Bash tool and could hit an
+  unapproved host.
+
+Fixed:
+- `http.py`'s `network_error` hint now curls the **exact URL that
+  failed** (`get_json` already has it), not a fixed stand-in -- so the
+  verification actually tests the host that matters.
+- The hint also tells the agent to check the Bash tool's own result
+  (separate from this script's error output) for a blocked/disallowed
+  host message before concluding anything about the user's network --
+  that signal means the fix is approving the host, not a network
+  diagnosis.
+- `SKILL.md`'s `compatibility` field and error table, `references/
+  interpreting.md`, and `README.md`'s "Known limitations" now name all
+  three host patterns explicitly and explain the sandbox-allowlist
+  mechanism, so a future maintainer (or a differently-behaved agent) has
+  the real explanation on hand instead of re-diagnosing from scratch.
+
+Two new tests: the hint curls the specific failing URL for a
+`pl.wikipedia.org` and a `wikimedia.org` failure (not just
+`wikidata.org`), and the hint mentions checking for a sandbox
+host-approval block. Full suite: 127 passed. `claude plugin validate .`:
+clean.
+
+This is the most likely explanation given the evidence (matches both
+independent incidents precisely), not a confirmed root cause from either
+affected user's own sandbox settings -- there was no way to get that
+confirmation from a stranger who already moved on. The fix is safe either
+way: it makes the diagnosis more accurate whether or not sandboxing is
+the actual cause in a given case.
