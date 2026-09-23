@@ -466,3 +466,109 @@ stranger's account settings -- there was no way to get that
 confirmation. The fix is safe regardless: it makes the agent name a
 setting that actually exists and that someone can actually act on,
 instead of "contact IT" for a setting IT has no access to.
+
+## Stage 13: English + Ukrainian, not Ukrainian-first
+
+Asked to make the skill work equally well for questions in English and
+in Ukrainian. Researched how multilingual skills are done before
+changing anything:
+
+- The `description` is the only text an agent sees before deciding to
+  load a skill. An English-only description *can* match other-language
+  requests, but it isn't guaranteed. There's a real report of skills
+  with English-only trigger phrases firing zero times in 45 days for a
+  user who writes in Chinese (anthropics/claude-code#68086). The
+  workaround is literal trigger phrases in each language, inside
+  `description`. There is no `triggers` field; that issue is a feature
+  request, and `skills-ref`'s `ALLOWED_FIELDS` confirms the spec has no
+  such field.
+- `SKILL.md` and references can stay in English (the agent reads them).
+  What matters is telling the agent to answer in the user's language.
+- Test triggering with real user phrases in each language, i.e. evals.
+
+Audited the skill against that and found four real gaps, not just the
+description:
+
+1. **The PDF's chart was always English**, even in a `--lang uk` report.
+   `report.py` embedded `analyze.py`'s `chart.png`, drawn with a
+   hardcoded English title, y-axis label and "peak" markers, before the
+   report's language is known. No test could see it, because `pypdf`
+   can't read text inside an image. This is the same class of bug as
+   Stage 6's English trust reasons in a Ukrainian report, one layer
+   further down.
+2. `report.py --lang` defaulted to `uk`.
+3. `SKILL.md`'s examples and the PDF-offer line were Ukrainian only, and
+   nothing explained that `analyze.py --lang` (a Wikipedia edition) and
+   `report.py --lang` (the output language) mean different things.
+4. All 8 eval scenarios were in Ukrainian; none was in English.
+
+Fixed:
+- New `wikitrends/i18n.py` (`SUPPORTED_LANGS`, `DEFAULT_LANG = "en"`,
+  `pick()`): one fallback rule for all three string tables (report labels,
+  chart labels, trust reasons). A parity test fails CI if any language is
+  missing a key the other has. See `docs/dev/i18n.md`.
+- `chart.py` takes `analysis.json`'s own `normalized` dicts, not
+  `NormalizedPoint` objects, and has localized labels. That also removed
+  the `normalized_points` duplicate `analyze.py` used to carry and strip
+  before writing the JSON. It also keeps `chart.py` from importing
+  `pageviews.py` → `requests`, which would have brought back Stage 6's
+  `ModuleNotFoundError` in `report.py`'s PEP 723 environment.
+- `report.py` redraws its own chart in `--lang` from `analysis.json` and
+  embeds that, and skips the chart section when no series has data.
+  `--lang` now defaults to `en`.
+- `SKILL.md`: English and Ukrainian trigger phrases in `description` (995
+  of 1024 chars, still valid YAML per `skills-ref`), a Language section
+  that separates answer language / report language / analyzed edition,
+  an English example, and the PDF offer in both languages.
+- 3 English eval scenarios, including an English question about the
+  Ukrainian edition (answer in English, but analyze `uk`).
+
+**Verified live, not just in tests**, from an empty scratch directory
+with each script's own PEP 723 dependencies only:
+`resolve_topic.py --query astronomy --query-lang en` → Q333;
+`analyze.py --qids Q333 --langs en,uk --last 24m` → real data (en −20%
+YoY, uk −60%, both high trust); `report.py` run twice, `--lang en` and
+`--lang uk`. Both PDFs are exactly one page, with text fully in the
+requested language (checked via `pypdf`). The Ukrainian chart PNG was
+opened and looked at directly: Ukrainian title, y-axis, and «пік» markers.
+Full suite: 140 passed. `claude plugin validate .` and
+`agentskills validate` both clean.
+
+**Live agent evals** used the Stage 9 method: `claude --model haiku -p`,
+with this branch's skill symlinked into a scratch workspace's
+`.claude/skills/`. Each transcript's "Base directory for this skill"
+confirmed the branch copy was the one loaded, not the older
+globally-installed plugin.
+
+- `english_single_topic_trust`, round 1: the skill triggered from a
+  purely English question. It ran `--query-lang en --langs en` and gave
+  the whole answer in English, with trust level and reasons. **Two
+  failures:**
+  1. No PDF offer at the end; the agent offered a different follow-up
+     question instead. The offer instruction was buried inside Workflow
+     step 4, which the agent skips when no report was asked for.
+  2. It paraphrased "Trend direction holds after normalizing for the
+     language edition's overall traffic" as "adjusting for the fact that
+     English Wikipedia itself gets more traffic". That's an invented
+     cause, and backwards: raw −20% vs. normalized −14% means the edition
+     is *shrinking*.
+
+  Fixed both with explicit rules in "How to write conclusions", the
+  section Stage 9 showed Haiku reliably follows: the PDF offer is the
+  last line of every answer that didn't produce a PDF; don't add causes
+  the JSON doesn't state; and how to read the edition's own traffic
+  direction from raw vs. normalized YoY.
+- `english_single_topic_trust`, round 2, after the fix: it ended with
+  "Want me to turn this into a one-page PDF report with a chart?", and
+  the normalization reason was paraphrased neutrally ("after accounting
+  for changes in overall English Wikipedia traffic").
+- `english_compare_langs_report`: `resolve_topic.py --query-lang en
+  --langs en,de,pl` → `analyze.py` → `report.py --lang en`, with
+  `--question`/`--summary` in English. The PDF is one page, entirely in
+  English, and the chart PNG is in English too (opened and looked at).
+  It also correctly reported that Polish Wikipedia has no article.
+- `single_topic_trust` (Ukrainian, regression check): answered in
+  Ukrainian with trust level and reasons, ending with the Ukrainian PDF
+  offer.
+
+Not run: `english_question_about_ukrainian_edition`.

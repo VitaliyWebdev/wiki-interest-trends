@@ -21,6 +21,10 @@ def make_series(article="Інтервальне голодування", lang="u
         "article": article,
         "label": f"{article} ({lang})",
         "found": True,
+        "normalized": [
+            {"timestamp": "2024010100", "views": 200, "project_total": 1_000_000, "per_million": 200.0},
+            {"timestamp": "2024020100", "views": 300, "project_total": 1_000_000, "per_million": 300.0},
+        ],
         "metrics": {
             "avg_monthly_views": 250.3,
             "yoy_growth_raw": yoy,
@@ -34,13 +38,52 @@ def make_series(article="Інтервальне голодування", lang="u
     }
 
 
-def make_analysis(series=None, chart_path=None, warnings=None):
+def make_analysis(series=None, warnings=None):
     return {
         "ok": True,
         "series": series if series is not None else [make_series()],
-        "chart_path": chart_path,
         "warnings": warnings or [],
     }
+
+
+def test_generate_report_renders_its_own_chart_in_the_report_language(tmp_path, monkeypatch):
+    # analyze.py's chart.png is drawn before anyone knows the report's
+    # language, so embedding it would put an English chart inside a
+    # Ukrainian report. The report must redraw it from analysis.json's
+    # own data, in its own language.
+    calls = []
+    original = report.render_chart
+
+    def spy(series_by_label, output_path, lang):
+        calls.append({"series": series_by_label, "lang": lang})
+        original(series_by_label, output_path, lang=lang)
+
+    monkeypatch.setattr(report, "render_chart", spy)
+    analysis = make_analysis()
+
+    generate_report(analysis, output_path=tmp_path / "report.pdf", lang="uk")
+
+    assert len(calls) == 1
+    assert calls[0]["lang"] == "uk"
+    series = analysis["series"][0]
+    assert calls[0]["series"] == {series["label"]: series["normalized"]}
+
+
+def test_generate_report_skips_the_chart_when_no_series_has_data(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(report, "render_chart", lambda *a, **kw: calls.append(a))
+
+    generate_report(
+        make_analysis(series=[make_series(found=False)]), output_path=tmp_path / "report.pdf", lang="en"
+    )
+
+    assert calls == []
+
+
+def test_cli_report_language_defaults_to_english():
+    args = report.build_arg_parser().parse_args(["--analysis-json", "analysis.json"])
+
+    assert args.lang == "en"
 
 
 def test_generate_report_produces_exactly_one_page(tmp_path):

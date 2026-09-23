@@ -7,6 +7,15 @@ trend significance, a deterministic confidence level, and an optional
 one-page PDF report — for B2C product founders deciding what to build or
 where to localize.
 
+Works the same for questions asked in **English or Ukrainian**. The skill
+triggers on phrases in either language. The agent answers in the user's
+language, and the PDF (headings, table values, trust reasons, and the
+chart itself) is rendered in that language via `report.py --lang en|uk`.
+The language of the answer is independent of which Wikipedia editions get
+analyzed, so an English question about the Ukrainian edition works fine.
+See [`docs/dev/i18n.md`](docs/dev/i18n.md) for how the localization is
+structured and how to add another language.
+
 All statistics run in tested Python, not in the agent's own reasoning —
 see [Why the architecture is this shape](#why-the-architecture-is-this-shape).
 
@@ -53,7 +62,7 @@ not just repo-level dev scaffolding). No compiled binaries are vendored;
 the only non-code assets are two DejaVu Sans `.ttf` files (for
 Cyrillic-capable PDF text) copied from matplotlib's own bundle.
 
-Run the test suite (127 tests, no network required — all fixtures are
+Run the test suite (140 tests, no network required — all fixtures are
 recorded real API responses). A `pytest.ini` at the repo root points
 `pytest` at the tests' real location so this works from either place:
 

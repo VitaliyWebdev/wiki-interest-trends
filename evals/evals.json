@@ -83,6 +83,38 @@
         "turn 2 goes straight to analyze.py with the expanded --langs",
         "turn 2 completes with noticeably fewer tool calls than turn 1 (cache + no re-resolution)"
       ]
+    },
+    {
+      "id": "english_single_topic_trust",
+      "type": "language: English question",
+      "query": "We're thinking about adding an astronomy course. Is interest in astronomy growing on English Wikipedia, and how much can I trust that?",
+      "checks": [
+        "the skill triggers from an English-only question (no Ukrainian keywords involved)",
+        "resolves 'astronomy' with --query-lang en and analyzes --langs en",
+        "the whole answer is in English, including trust reasons paraphrased from the JSON",
+        "states the trust level AND at least one reason for it",
+        "ends with a one-line offer, in English, to make a PDF report"
+      ]
+    },
+    {
+      "id": "english_compare_langs_report",
+      "type": "language: English question, English report",
+      "query": "Compare how interest in intermittent fasting changed on English, German and Polish Wikipedia over the last two years, and make me a short PDF report.",
+      "checks": [
+        "calls report.py with --lang en, not uk",
+        "--question and --summary are written in English",
+        "the generated PDF's headings, table values, trust reasons and chart labels are all English"
+      ]
+    },
+    {
+      "id": "english_question_about_ukrainian_edition",
+      "type": "language: answer language differs from the analyzed edition",
+      "query": "Is interest in Taras Shevchenko growing on Ukrainian Wikipedia?",
+      "checks": [
+        "analyzes --langs uk even though the question is in English",
+        "answers in English, not Ukrainian, despite the analyzed edition being Ukrainian",
+        "if a PDF is requested afterwards, uses --lang en (the user's language), not uk (the edition's language)"
+      ]
     }
   ]
 }
