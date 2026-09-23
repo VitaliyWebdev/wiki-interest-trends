@@ -168,6 +168,27 @@ def test_network_error_hint_mentions_sandbox_host_approval():
     assert "blocked host" in hint or "disallowed" in hint
 
 
+def test_network_error_hint_mentions_claude_ai_capabilities_network_egress():
+    # Real incident, a third and distinct one: claude.ai chat / Claude
+    # Desktop have no local Bash tool at all, so the Claude-Code-specific
+    # "check the Bash tool's own result" advice doesn't apply -- yet an
+    # agent there hit this same error and still (wrongly) told the user
+    # it was their organization's network. In that product, the actual
+    # switch is claude.ai's own Capabilities > Code execution > Allow
+    # network egress setting (or the org admin's equivalent), which is
+    # nothing IT can act on. The hint must name that specific setting,
+    # not just generically say "ask your admin".
+    session = FakeSession([requests.exceptions.ConnectionError("boom")])
+
+    with pytest.raises(AppError) as exc_info:
+        get_json(session, "https://uk.wikipedia.org/w/api.php?action=query", sleep=lambda s: None, max_retries=0)
+
+    hint = exc_info.value.hint
+    assert "Capabilities" in hint
+    assert "network egress" in hint.lower()
+    assert "claude.ai" in hint.lower() or "claude desktop" in hint.lower()
+
+
 def test_build_session_sets_user_agent_with_given_contact():
     session = build_session(contact="me@example.org")
 
