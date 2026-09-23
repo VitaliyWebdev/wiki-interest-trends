@@ -16,6 +16,13 @@ analyzed, so an English question about the Ukrainian edition works fine.
 See [`docs/dev/i18n.md`](docs/dev/i18n.md) for how the localization is
 structured and how to add another language.
 
+The PDF reads top-down like an executive one-pager: the question as the
+headline, the agent's conclusion, KPI cards (YoY per series, overall
+trust), a vector chart with labeled lines, a per-series table with
+sparklines, and the reasons behind the trust level. See
+[`docs/dev/report-design.md`](docs/dev/report-design.md) for why each
+piece looks the way it does.
+
 All statistics run in tested Python, not in the agent's own reasoning —
 see [Why the architecture is this shape](#why-the-architecture-is-this-shape).
 
@@ -62,7 +69,7 @@ not just repo-level dev scaffolding). No compiled binaries are vendored;
 the only non-code assets are two DejaVu Sans `.ttf` files (for
 Cyrillic-capable PDF text) copied from matplotlib's own bundle.
 
-Run the test suite (140 tests, no network required — all fixtures are
+Run the test suite (164 tests, no network required — all fixtures are
 recorded real API responses). A `pytest.ini` at the repo root points
 `pytest` at the tests' real location so this works from either place:
 
@@ -187,7 +194,7 @@ that's the fastest way into the actual implementation reasoning;
 
 ## Known limitations
 
-- **DejaVu Sans has no CJK glyphs.** A chart legend entry for a Chinese/
+- **DejaVu Sans has no CJK glyphs.** A chart line label for a Chinese/
   Japanese/Korean article title renders as missing-glyph boxes (cosmetic
   only — doesn't affect the underlying numbers or the JSON contract).
   Found running a real eval against `uk,pl,es,ja,ru,pt,de`. A CJK-capable

@@ -125,6 +125,8 @@ def test_analyze_qids_mode_found_article_writes_analysis_and_chart(tmp_path):
     # report.py redraws its chart from this, so it's part of the contract.
     assert len(analysis["series"][0]["normalized"]) == 4
     assert set(analysis["series"][0]["normalized"][0]) == {"timestamp", "views", "project_total", "per_million"}
+    # ...and so is each reason's concern flag, which the report marks ✓ / !.
+    assert all(isinstance(rc["concern"], bool) for rc in analysis["series"][0]["trust"]["reason_codes"])
 
     assert Path(result["chart_png"]).exists()
     assert Path(result["chart_png"]).read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"

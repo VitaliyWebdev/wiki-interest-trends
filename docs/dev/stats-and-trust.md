@@ -98,7 +98,13 @@ English (the reasons were hardcoded English strings); see
 `docs/dev/report-pdf.md` for the full story. `analyze.py` writes both
 `trust.reasons` (rendered English, for a human skimming `analysis.json`)
 and `trust.reason_codes` (code+params, for `report.py` to localize) into
-the JSON.
+the JSON. Each `reason_codes` entry also carries `"concern": true|false`,
+set by `assess_trust()` itself (`Reason.concern`), so the PDF can mark
+each reason ✓ / ! without re-deriving these rules.
+`test_every_reason_says_whether_it_counts_against_the_level` checks the
+flags reproduce the level (concern count 0/1/2+). `render_reason` shows a
+p-value below 0.001 as "p<0.001" rather than the "p=0.000" the `.3f`
+format used to give.
 
 **The rule, spelled out** (matches the five factors the spec names
 explicitly): below 12 months of data, short-circuit straight to `"low"` —

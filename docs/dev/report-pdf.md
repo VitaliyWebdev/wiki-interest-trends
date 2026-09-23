@@ -64,15 +64,22 @@ test could have caught it.
 
 **Fix:** `report.py` no longer uses `analysis["chart_path"]`. It redraws
 the chart itself with `render_chart(..., lang=lang)` from
-`series[].normalized` in `analysis.json`, writes it next to the PDF as
-`<report>.chart.png`, and embeds that. No series with data means no chart
-section at all, instead of an empty plot. That's why `report.py`'s PEP 723
-header now also lists `matplotlib`. It still doesn't need `requests`,
+`series[].normalized` in `analysis.json`. No series with data means no
+chart section at all, instead of an empty plot. That's why `report.py`'s
+PEP 723 header also lists `matplotlib`. It still doesn't need `requests`,
 because `chart.py` takes plain dicts and no longer imports `pageviews.py`.
 `test_generate_report_renders_its_own_chart_in_the_report_language`
-checks that the report redraws the chart in its own language, and
-`test_render_chart_uses_labels_in_the_requested_language` checks that the
-chart really draws the Ukrainian strings.
+checks that the report redraws the chart in its own language.
+
+**Later: the chart is vector now, not a PNG.** It's drawn to a temporary
+PDF and stamped onto the page with pypdf, so pypdf moved from test-only
+to a runtime dependency of `report.py` (PEP 723 header and
+`requirements.txt`). No `<report>.chart.png` sidecar is left next to the
+PDF anymore. Because the chart's text is now real text in the PDF,
+`test_the_chart_is_embedded_as_vector_graphics_in_the_report_language`
+checks both that the page has no raster images and that the Ukrainian
+chart title is in its extracted text. Design and layout decisions are in
+`report-design.md`.
 
 `--lang` defaults to `en` (`i18n.DEFAULT_LANG`), which is also the
 fallback for unsupported languages. It used to default to `uk`. Neither
@@ -88,10 +95,10 @@ content that doesn't fit. The spec requires *exactly* one page. Using
 function calls `showPage()` + `save()` exactly once, so there is no code
 path that could emit a second page. The only risk with `Canvas` is content
 overlapping or running off the bottom edge if there's a lot of it -- so
-`MAX_TABLE_ROWS = 8` caps the metrics table (excess rows summarized as
-"... N more in analysis.json") and the limitations bullet list has a
-computed line budget based on remaining vertical space, truncating with
-"..." if needed. `Table`/`TableStyle` from Platypus *are* still used for
+`MAX_TABLE_ROWS` (the palette size, 7) caps the metrics table (excess rows
+summarized as "... N more in analysis.json"), and the trust reasons get
+the remaining vertical space, ending in "… the rest is in analysis.json"
+if they don't fit (priorities in `report-design.md`). `Table`/`TableStyle` from Platypus *are* still used for
 just the metrics grid (nicer than manual column math) via
 `table.wrapOn()`/`table.drawOn()` directly onto the canvas -- that's a
 supported way to use one Platypus flowable without adopting the whole

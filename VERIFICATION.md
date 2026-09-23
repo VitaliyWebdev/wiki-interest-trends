@@ -572,3 +572,82 @@ globally-installed plugin.
   offer.
 
 Not run: `english_question_about_ukrainian_edition`.
+
+## Stage 14: report and chart redesign
+
+The PDF was correct but looked like a debug dump: a small, blurry 150 dpi
+chart whose legend covered the peak markers, a grey-grid table, and half
+the page empty. Redesigned after research on one-page reports and charts.
+Decisions and sources are in `docs/dev/report-design.md`.
+
+**What changed**
+- Page, top to bottom: the question as the headline, a conclusion callout,
+  KPI cards (YoY per series plus overall trust), the chart, a per-series
+  table with sparklines, trust reasons marked ✓ / ! in two columns, and
+  method notes when they fit.
+- The chart is vector. `render_chart()` writes a PDF, and `report.py`
+  stamps it onto the page with pypdf, so pypdf is now a runtime dependency
+  of `report.py`. It's drawn at 1:1 in the page's font, with line-end
+  labels instead of a legend (the old legend-overlap chip is resolved
+  here). Several series are shown as an index (100 = the series' own
+  average), and the YoY window is shaded. Month names are localized.
+- `theme.py` holds shared design tokens, with the Okabe-Ito palette. Each
+  series keeps one color across chart, card and table, and colors are
+  never reused.
+- `i18n.py`: month names, number separators, a real minus sign.
+- `trust.py`: `Reason.concern` flag (also in `analysis.json`), and
+  `p<0.001` instead of "p=0.000".
+- `SKILL.md`: step 4 passes `--question` (the headline) and keeps the
+  summary to 2-4 sentences. No outside causes in `--summary` (see below).
+
+**Found only by rendering real data and looking at it**, all fixed and
+most now covered by a test:
+1. A path-effect halo turned chart labels into outlines in the PDF (not
+   text anymore). The halo is now a separate copy under the real text.
+2. The "last 12 months" band shaded the wrong half: a date was mixed with
+   a float x-limit.
+3. Tick labels and long line labels were clipped. Layout is measured, then
+   corrected.
+4. With 4 cards across, text was cut mid-word ("decre…"). Cards now pick
+   the first phrasing that fits whole.
+5. Peak labels of different series printed on top of each other. Colliding
+   ones are dropped; the marker stays.
+6. A group heading got stranded at the bottom of the first reasons column.
+7. Daily data got a YoY band, a "Monthly" subtitle, and month-only dates.
+8. Stress test with 9 series: the trust heading drew into the footer and
+   its note below the page edge; the 8th series reused the 1st's color;
+   leader lines cut through the neighbouring labels. Fixed.
+   `test_a_crowded_page_never_draws_into_the_footer` checks real text
+   positions, and fails when the guard is removed (mutation-checked).
+
+**Verified live**, with `uv run` and each script's own PEP 723 dependencies:
+`analyze.py` for astronomy en+uk, intermittent fasting en/de/pl/uk (pl has
+no article), Кімчі uk over 18 months (no YoY, low trust), and Astronomy en
+daily over 30 days. `report.py` produced a one-page PDF for each, and each
+was rendered to PNG and looked at. For the chart text, `pypdf` finds the
+chart title, months, peak labels and line labels in the PDF text, with 0
+raster images; the astronomy report is 161 KB. No sidecar chart file is
+left next to the PDF. Full suite: 164 passed. `claude plugin validate .`
+and `agentskills validate` are both clean.
+
+**Live agent evals** (`claude --model haiku -p`, branch skill symlinked;
+the transcripts confirm the branch copy was loaded):
+- English: "Compare interest in remote work on English, German and Spanish
+  Wikipedia ... one-page PDF I can send to my co-founder." Resolved Q1135326,
+  analyzed en/de/es, and ran `report.py --lang en` with `--question` and a
+  4-sentence summary. It hit Wikimedia 429s (two evals were running in
+  parallel), and the agent waited and retried correctly. **Finding:** the
+  summary ended with "This reflects a shift from the pandemic-era spike",
+  an outside cause the data doesn't show, printed into a PDF meant for a
+  co-founder. Added to SKILL.md's "Don't add causes" rule: guesses only in
+  chat, labeled as guesses, never in `--summary`. Re-run after the fix:
+  the summary had only data-backed statements; the chat answer kept a
+  hedged "This pattern suggests...".
+- Ukrainian: "Чи росте інтерес до електромобілів ... PDF-звіт для
+  інвестора." Analyzed uk+pl and ran `report.py --lang uk` with a Ukrainian
+  question and a 3-sentence summary. The PDF is fully Ukrainian, including
+  the chart.
+
+**Not fixed here, flagged separately:** with `--granularity daily`,
+`analyze.py`/`trust.py` count daily points as months ("29 months of data",
+"views/mo"). This predates this change; the report just makes it visible.

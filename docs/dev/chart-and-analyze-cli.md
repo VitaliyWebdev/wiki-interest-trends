@@ -9,41 +9,52 @@
 render_chart(series_by_label: dict[str, list[dict]], output_path: Path, lang: str = "en") -> None
 ```
 
-One PNG, one line per label ("Article title (lang)"), each series's own
-peak month annotated. Points are `analysis.json`'s own
-`series[].normalized` dicts (`timestamp`, `per_million`, ...), not
-`NormalizedPoint` objects — so `analyze.py` and `report.py` draw from the
-exact same data, and `chart.py` doesn't import `pageviews.py` (which would
-drag `requests` into `report.py`'s PEP 723 environment). Title, y-axis
-label and the "peak" annotation come from `CHART_LABELS[lang]` via
-`i18n.pick` (see `i18n.md`); `analyze.py` draws its `chart.png` in the
-default language, and `report.py` redraws its own in the report's
-language. Headless (`matplotlib.use("Agg")` — this only ever
-runs from a CLI script, never a GUI). A label with an empty point list is
-skipped when drawing, and `ax.legend()` only fires if at least one line
-was actually plotted — an earlier version called `legend()` whenever the
-*dict* was non-empty, which threw a `UserWarning` ("No artists with labels
-found") whenever every requested topic/language turned out to have no
-data; caught by `test_analyze_qids_mode_missing_language_reported_without_pageview_calls`
-producing an empty `chart_series` dict flowing into a chart that still
-needs to render (just an empty frame) without warnings.
+One chart, one line per label ("Article title (lang)"). The file format
+follows `output_path`'s suffix: `analyze.py` writes `chart.png` for chat,
+and `report.py` writes a temporary PDF and stamps it onto the report as
+vector graphics. Points are `analysis.json`'s own `series[].normalized`
+dicts (`timestamp`, `per_million`, ...), not `NormalizedPoint` objects,
+so `analyze.py` and `report.py` draw from the exact same data, and
+`chart.py` doesn't import `pageviews.py` (which would drag `requests`
+into `report.py`'s PEP 723 environment). Every string comes from
+`CHART_LABELS[lang]` and month names from `i18n.MONTHS_SHORT` (see
+`i18n.md`); `analyze.py` draws its `chart.png` in the default language,
+and `report.py` redraws its own in the report's language. Headless
+(`matplotlib.use("Agg")` — this only ever runs from a CLI script, never
+a GUI).
 
-Unit tests only check "produced a valid PNG, didn't crash" — chart.py has
-no way to unit-test that the picture is *visually* right; that's what
-Stage 11's real end-to-end run is for.
+What it draws, and why each choice was made, is in `report-design.md`:
+views per million for one series, an index (100 = the series' own
+average) for several; line-end labels instead of a legend; peak markers
+whose labels drop out rather than collide; a shaded "last 12 months"
+band for monthly data. Two contracts other code relies on:
+
+- **Colors follow the dict's order** (`theme.series_color(i)`), and a
+  label with no points still takes its color slot. `report.py` colors
+  each series' card and table sparkline by the same index.
+- **Text stays text.** `pdf.fonttype: 42` embeds TrueType, and halos are
+  drawn as separate white copies instead of path effects (which turn text
+  into outlines). `test_chart.py` relies on that: it renders to PDF and
+  reads back what was actually drawn, instead of the old "produced a
+  valid PNG, didn't crash" checks.
+
+A label with an empty point list draws nothing. An empty dict still
+renders a titled "No data to plot" frame without warnings, which
+`test_analyze_qids_mode_missing_language_reported_without_pageview_calls`
+exercises (every requested language missing).
 
 **Known limitation, found during the Stage 9 Haiku eval run (not
 hypothetical — hit for real analyzing "English" across `uk,pl,es,ja,ru,pt,de`):**
 DejaVu Sans (the only font shipped in `skills/wiki-interest-trends/assets/fonts/`) has no CJK glyphs.
-An article title containing Chinese/Japanese/Korean characters in the
-chart legend renders as missing-glyph boxes and matplotlib logs a
+An article title containing Chinese/Japanese/Korean characters in a
+line-end label renders as missing-glyph boxes and matplotlib logs a
 `UserWarning: Glyph ... missing from font(s) DejaVu Sans` on stderr. This
 doesn't affect correctness (the underlying numbers/JSON are unaffected,
 and the warning goes to stderr, never stdout, so it doesn't break the
-`{"ok": ...}` contract) — it's a cosmetic gap for CJK-language legend
+`{"ok": ...}` contract) — it's a cosmetic gap for CJK-language line
 labels specifically. Not fixed: a CJK-capable font (e.g. Noto Sans CJK) is
 several MB, multiple times the size of everything else this skill ships,
-for a legend-label edge case. Flagged as a "как розвивати далі" item
+for a line-label edge case. Flagged as a "як розвивати далі" item
 rather than fixed in scope.
 
 ## `analyze.py` — the shape of the orchestration
