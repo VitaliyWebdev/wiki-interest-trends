@@ -1,6 +1,19 @@
 ---
 name: wiki-interest-trends
-description: Analyzes interest in a topic over time using Wikipedia pageview statistics across language editions -- compares growth, trend significance, and a confidence ("trust") level between languages or topics, and can produce a one-page PDF report with a chart. Use when researching audience/market interest for a product idea, deciding which languages or countries to localize or launch into, checking whether interest in a topic is growing or declining, comparing topic popularity across language editions, or preparing a founder/stakeholder-facing report backed by real data. Not for measuring purchase intent, ad-hoc trivia lookups, or real-time/breaking-news monitoring. Ukrainian keywords for triggering: інтерес до теми, тренди Wikipedia, чи росте попит, вибір мов для локалізації, порівняння ринків, аналіз популярності, перегляди статей, довіра до тренду.
+description: >-
+  Analyzes interest in a topic over time using Wikipedia pageview statistics
+  across language editions -- compares growth, trend significance, and a
+  confidence ("trust") level between languages or topics, and can produce a
+  one-page PDF report with a chart. Use when researching audience/market
+  interest for a product idea, deciding which languages or countries to
+  localize or launch into, checking whether interest in a topic is growing
+  or declining, comparing topic popularity across language editions, or
+  preparing a founder/stakeholder-facing report backed by real data. Not for
+  measuring purchase intent, ad-hoc trivia lookups, or
+  real-time/breaking-news monitoring. Ukrainian keywords for triggering:
+  інтерес до теми, тренди Wikipedia, чи росте попит, вибір мов для
+  локалізації, порівняння ринків, аналіз популярності, перегляди статей,
+  довіра до тренду.
 compatibility: Requires uv (auto-installed by this skill if missing; uv manages its own Python, no separate Python install needed) and network access to www.wikidata.org, wikimedia.org, and a *.wikipedia.org host per requested language (e.g. en.wikipedia.org, uk.wikipedia.org).
 metadata:
   version: "1.0"
