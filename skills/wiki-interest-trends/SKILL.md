@@ -33,6 +33,17 @@ the numbers they give you -- do not estimate a growth percentage, invent a
 trend, or compute your own confidence level. That is the entire point of
 this skill's design.
 
+**Never conclude the scripts can't reach the network without actually
+running them in *this* attempt.** If an earlier turn in this same
+conversation hit a network error, that does not mean the same command
+will fail again now -- sandbox approvals, admin settings, and transient
+issues can all change between turns. Real incident: an agent recalled an
+earlier failure from earlier in the conversation and told the user "this
+environment has no access," without trying again, going straight to a
+manual CSV workaround -- when simply re-running the command might have
+worked. Re-attempt before repeating any network-related conclusion from
+earlier in the conversation, every single time, no exceptions.
+
 ## When to use this skill
 
 - "Is interest in X growing?" / "Чи росте інтерес до X?"

@@ -78,3 +78,16 @@ def test_scripts_referenced_in_skill_md_exist():
     for script_name in ("resolve_topic.py", "analyze.py", "report.py"):
         assert f"scripts/{script_name}" in body
         assert (root / "scripts" / script_name).exists()
+
+
+def test_body_tells_agent_to_reattempt_instead_of_trusting_a_stale_network_conclusion():
+    # Real incident: an agent recalled an earlier network failure from
+    # earlier in the same conversation and told the user "this
+    # environment has no access" without ever re-running the command in
+    # that attempt -- skipping straight to a manual workaround the skill
+    # exists to avoid. No script-side fix can catch this, since the
+    # script was never even called; this has to be a workflow rule.
+    _, body = _frontmatter_and_body()
+
+    assert "without actually" in body.lower() or "re-attempt" in body.lower()
+    assert "earlier" in body.lower() and "conversation" in body.lower()
