@@ -16,7 +16,7 @@ PEAK_SHARE_HIGH = 0.5
 PEAK_SHARE_MODERATE = 0.35
 
 # Reasons are code+params, not pre-formatted strings, specifically so a
-# report can render them in the user's language (uk/en at minimum, per the
+# report can render them in the user's language (every i18n.SUPPORTED_LANGS entry, per the
 # spec) instead of always English -- a real gap found running report.py
 # end-to-end: a Ukrainian-language report had every other section in
 # Ukrainian except this list, which was hardcoded English text.
@@ -24,62 +24,92 @@ REASON_TEMPLATES: Dict[str, Dict[str, str]] = {
     "insufficient_history": {
         "en": "Only {months} months of data -- need at least {min_months} to say anything about a trend at all.",
         "uk": "Лише {months} міс. даних — потрібно щонайменше {min_months}, щоб взагалі говорити про тренд.",
+        "pl": "Tylko {months} mies. danych — potrzeba co najmniej {min_months}, żeby w ogóle mówić o trendzie.",
+        "cs": "Jen {months} měs. dat — aby šlo o trendu vůbec mluvit, je potřeba alespoň {min_months}.",
     },
     "short_history": {
         "en": "Only {months} months of data ({min_months}+ needed for a confident year-over-year comparison of full years).",
         "uk": "Лише {months} міс. даних (потрібно {min_months}+ для впевненого порівняння повних років).",
+        "pl": "Tylko {months} mies. danych (potrzeba {min_months}+ do pewnego porównania pełnych lat).",
+        "cs": "Jen {months} měs. dat (pro spolehlivé srovnání celých let je potřeba {min_months}+).",
     },
     "long_history": {
         "en": "{months} months of data -- enough to compare full years.",
         "uk": "{months} міс. даних — достатньо для порівняння повних років.",
+        "pl": "{months} mies. danych — wystarczy do porównania pełnych lat.",
+        "cs": "{months} měs. dat — dost pro srovnání celých let.",
     },
     "low_volume": {
         "en": "Average of {views} views/month is low -- small numbers are noisy, month-to-month swings can look like a trend.",
         "uk": "У середньому {views} переглядів/міс — це мало, малі числа шумні, місячні коливання можуть виглядати як тренд.",
+        "pl": "Średnio {views} wyświetleń/mies. to mało — małe liczby są zaszumione, a wahania z miesiąca na miesiąc mogą wyglądać jak trend.",
+        "cs": "Průměrně {views} zobrazení/měs. je málo — malá čísla jsou zašuměná a výkyvy mezi měsíci mohou vypadat jako trend.",
     },
     "moderate_volume": {
         "en": "Average of {views} views/month is moderate -- more views would make the trend more reliable.",
         "uk": "У середньому {views} переглядів/міс — помірно, більше переглядів зробило б тренд надійнішим.",
+        "pl": "Średnio {views} wyświetleń/mies. — umiarkowanie; więcej wyświetleń uczyniłoby trend bardziej wiarygodnym.",
+        "cs": "Průměrně {views} zobrazení/měs. — střední objem; více zobrazení by trend učinilo spolehlivějším.",
     },
     "high_volume": {
         "en": "Average of {views} views/month -- enough volume that month-to-month noise is less of a concern.",
         "uk": "У середньому {views} переглядів/міс — достатній обсяг, щоб місячний шум менше турбував.",
+        "pl": "Średnio {views} wyświetleń/mies. — na tyle dużo, że miesięczny szum mniej przeszkadza.",
+        "cs": "Průměrně {views} zobrazení/měs. — dost velký objem, aby měsíční šum tolik nevadil.",
     },
     "trend_significance_unknown": {
         "en": "Trend significance could not be computed.",
         "uk": "Не вдалося обчислити значущість тренду.",
+        "pl": "Nie udało się obliczyć istotności trendu.",
+        "cs": "Významnost trendu se nepodařilo spočítat.",
     },
     "trend_not_significant": {
         "en": "Trend is not statistically significant (Mann-Kendall p={p_value:.2f}).",
         "uk": "Тренд статистично незначущий (Mann-Kendall p={p_value:.2f}).",
+        "pl": "Trend nie jest istotny statystycznie (Mann-Kendall p={p_value:.2f}).",
+        "cs": "Trend není statisticky významný (Mann-Kendall p={p_value:.2f}).",
     },
     "trend_weakly_significant": {
         "en": "Trend is only weakly significant (Mann-Kendall p={p_value:.2f}).",
         "uk": "Тренд лише слабко значущий (Mann-Kendall p={p_value:.2f}).",
+        "pl": "Trend jest tylko słabo istotny (Mann-Kendall p={p_value:.2f}).",
+        "cs": "Trend je jen slabě významný (Mann-Kendall p={p_value:.2f}).",
     },
     "trend_significant": {
         "en": "Trend is statistically significant (Mann-Kendall {p}).",
         "uk": "Тренд статистично значущий (Mann-Kendall {p}).",
+        "pl": "Trend jest istotny statystycznie (Mann-Kendall {p}).",
+        "cs": "Trend je statisticky významný (Mann-Kendall {p}).",
     },
     "trend_reverses_after_normalization": {
         "en": "Trend direction changes after normalizing for the language edition's overall traffic -- the raw trend may just be tracking Wikipedia's own growth or decline, not real interest in the topic.",
         "uk": "Напрям тренду змінюється після нормалізації на загальний трафік мовного розділу — сирий тренд може відображати зростання чи спад самої Вікіпедії, а не реальний інтерес до теми.",
+        "pl": "Kierunek trendu zmienia się po normalizacji na ogólny ruch wersji językowej — surowy trend może odzwierciedlać wzrost lub spadek samej Wikipedii, a nie rzeczywiste zainteresowanie tematem.",
+        "cs": "Po normalizaci na celkový provoz jazykové verze se směr trendu obrací — surový trend může jen kopírovat růst či pokles samotné Wikipedie, ne skutečný zájem o téma.",
     },
     "trend_holds_after_normalization": {
         "en": "Trend direction holds after normalizing for the language edition's overall traffic.",
         "uk": "Напрям тренду зберігається після нормалізації на загальний трафік мовного розділу.",
+        "pl": "Kierunek trendu utrzymuje się po normalizacji na ogólny ruch wersji językowej.",
+        "cs": "Směr trendu platí i po normalizaci na celkový provoz jazykové verze.",
     },
     "peak_dominated": {
         "en": "The top 2 months alone account for {peak_share:.0%} of all views -- this may be a news spike, not sustained interest.",
         "uk": "Лише 2 найпіковіші місяці дають {peak_share:.0%} усіх переглядів — це може бути новинний сплеск, а не стійкий інтерес.",
+        "pl": "Same 2 najsilniejsze miesiące dają {peak_share:.0%} wszystkich wyświetleń — to może być skok wywołany wiadomościami, a nie trwałe zainteresowanie.",
+        "cs": "Jen 2 nejsilnější měsíce tvoří {peak_share:.0%} všech zobrazení — může jít o zpravodajský výkyv, ne o trvalý zájem.",
     },
     "peak_moderate": {
         "en": "The top 2 months account for {peak_share:.0%} of all views -- some concentration in short spikes.",
         "uk": "2 найпіковіші місяці дають {peak_share:.0%} усіх переглядів — певна концентрація в коротких сплесках.",
+        "pl": "2 najsilniejsze miesiące dają {peak_share:.0%} wszystkich wyświetleń — pewna koncentracja w krótkich skokach.",
+        "cs": "2 nejsilnější měsíce tvoří {peak_share:.0%} všech zobrazení — část zájmu připadá na krátké výkyvy.",
     },
     "spread_out": {
         "en": "Views are spread out over time (top 2 months are only {peak_share:.0%} of the total), not driven by a single spike.",
         "uk": "Перегляди рівномірно розподілені в часі (2 найпіковіші місяці — лише {peak_share:.0%} від загалу), не спричинені одним сплеском.",
+        "pl": "Wyświetlenia rozkładają się w czasie (2 najsilniejsze miesiące to tylko {peak_share:.0%} całości), nie wynikają z jednego skoku.",
+        "cs": "Zobrazení jsou rozložena v čase (2 nejsilnější měsíce tvoří jen {peak_share:.0%} celku), nejde o jediný výkyv.",
     },
 }
 

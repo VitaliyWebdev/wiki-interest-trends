@@ -43,19 +43,12 @@ renders a titled "No data to plot" frame without warnings, which
 `test_analyze_qids_mode_missing_language_reported_without_pageview_calls`
 exercises (every requested language missing).
 
-**Known limitation, found during the Stage 9 Haiku eval run (not
-hypothetical — hit for real analyzing "English" across `uk,pl,es,ja,ru,pt,de`):**
-DejaVu Sans (the only font shipped in `skills/wiki-interest-trends/assets/fonts/`) has no CJK glyphs.
-An article title containing Chinese/Japanese/Korean characters in a
-line-end label renders as missing-glyph boxes and matplotlib logs a
-`UserWarning: Glyph ... missing from font(s) DejaVu Sans` on stderr. This
-doesn't affect correctness (the underlying numbers/JSON are unaffected,
-and the warning goes to stderr, never stdout, so it doesn't break the
-`{"ok": ...}` contract) — it's a cosmetic gap for CJK-language line
-labels specifically. Not fixed: a CJK-capable font (e.g. Noto Sans CJK) is
-several MB, multiple times the size of everything else this skill ships,
-for a line-label edge case. Flagged as a "як розвивати далі" item
-rather than fixed in scope.
+Chinese/Japanese/Korean line labels used to render as missing-glyph
+boxes (DejaVu Sans has no CJK; found in the Stage 9 Haiku eval run on
+`uk,pl,es,ja,ru,pt,de`). Fixed in Stage 15: `render_chart` sets
+`font.family` to DejaVu Sans plus the bundled CJK fonts, and matplotlib
+falls back per glyph. See `fonts.md` for the font choice and the one
+ordering trap (Hangul split into jamo).
 
 ## `analyze.py` — the shape of the orchestration
 

@@ -115,6 +115,38 @@
         "answers in English, not Ukrainian, despite the analyzed edition being Ukrainian",
         "if a PDF is requested afterwards, uses --lang en (the user's language), not uk (the edition's language)"
       ]
+    },
+    {
+      "id": "polish_compare_langs_report",
+      "type": "language: Polish user, Polish PDF",
+      "query": "Porównaj wzrost zainteresowania postem przerywanym w czeskiej i polskiej Wikipedii w ciągu ostatnich dwóch lat i przygotuj krótki raport PDF.",
+      "checks": [
+        "resolves the topic and analyzes --langs cs,pl",
+        "reports plainly that Polish Wikipedia has no article on this topic, as a finding",
+        "answers in Polish",
+        "runs report.py with --lang pl, and --question/--summary in Polish",
+        "the PDF's headings, table values, trust reasons and chart are Polish, not English"
+      ]
+    },
+    {
+      "id": "czech_single_topic_trust",
+      "type": "language: Czech user",
+      "query": "Roste zájem o astronomii na české Wikipedii a jak moc se tomu dá věřit?",
+      "checks": [
+        "analyzes --langs cs",
+        "answers in Czech, stating the trust level and at least one reason",
+        "ends with a one-line offer of a PDF report, in Czech; if accepted, uses report.py --lang cs"
+      ]
+    },
+    {
+      "id": "cjk_editions_report",
+      "type": "scripts: Chinese/Japanese/Korean article titles",
+      "query": "Порівняй інтерес до інтервального голодування в японській і корейській Wikipedia та зроби PDF-звіт.",
+      "checks": [
+        "analyzes --langs ja,ko",
+        "runs report.py with --lang uk",
+        "the article titles (断続的断食, 간헐적 단식) are readable in the PDF's cards, table and chart -- no empty boxes, no 간 split into 가ㄴ"
+      ]
     }
   ]
 }

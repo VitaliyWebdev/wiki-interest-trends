@@ -7,10 +7,12 @@ trend significance, a deterministic confidence level, and an optional
 one-page PDF report — for B2C product founders deciding what to build or
 where to localize.
 
-Works the same for questions asked in **English or Ukrainian**. The skill
-triggers on phrases in either language. The agent answers in the user's
-language, and the PDF (headings, table values, trust reasons, and the
-chart itself) is rendered in that language via `report.py --lang en|uk`.
+Works the same for questions asked in **English, Ukrainian, Polish or
+Czech**. The skill triggers on phrases in each of them. The agent answers
+in the user's language, and the PDF (headings, table values, trust
+reasons, and the chart itself) is rendered in that language via
+`report.py --lang en|uk|pl|cs`. Article titles in any script, including
+Chinese, Japanese and Korean, print correctly in the chart and the PDF.
 The language of the answer is independent of which Wikipedia editions get
 analyzed, so an English question about the Ukrainian edition works fine.
 See [`docs/dev/i18n.md`](docs/dev/i18n.md) for how the localization is
@@ -194,11 +196,16 @@ that's the fastest way into the actual implementation reasoning;
 
 ## Known limitations
 
-- **DejaVu Sans has no CJK glyphs.** A chart line label for a Chinese/
-  Japanese/Korean article title renders as missing-glyph boxes (cosmetic
-  only — doesn't affect the underlying numbers or the JSON contract).
-  Found running a real eval against `uk,pl,es,ja,ru,pt,de`. A CJK-capable
-  font is several MB, disproportionate to bundle for this.
+- **The PDF's own labels come in four languages** (`en`, `uk`, `pl`,
+  `cs`); any other `--lang` falls back to English labels, while the
+  question, summary and article titles still print in their own language.
+  Adding one is a translation job the parity test checks: see
+  `docs/dev/i18n.md`.
+- **Scripts that need shaping (Devanagari, Thai, Arabic joining) are not
+  shaped**: neither matplotlib nor reportlab does complex text layout, so
+  such titles print as separate, unjoined letters. Latin, Cyrillic, Greek
+  and Chinese/Japanese/Korean are fine (CJK via bundled Droid Sans
+  Fallback and NanumGothic, see `docs/dev/fonts.md`).
 - **Year-over-year growth and seasonality only compute at monthly
   granularity** (`--granularity daily` gets trend/peak-share numbers but
   not those two) — both assume one data point per calendar month.

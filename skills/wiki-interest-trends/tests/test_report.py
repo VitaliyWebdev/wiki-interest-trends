@@ -432,3 +432,53 @@ def test_no_two_series_shown_share_a_color(tmp_path, monkeypatch):
     generate_report(make_analysis(series=many), output_path=tmp_path / "report.pdf", lang="en")
 
     assert len(calls[0]) == len(theme.SERIES_COLORS) == report.MAX_TABLE_ROWS
+
+
+def test_chinese_japanese_and_korean_articles_are_drawn_in_fonts_that_have_them(tmp_path):
+    # reportlab has no per-glyph fallback, so a CJK title drawn in DejaVu
+    # came out as empty boxes in the cards, the table, and the reasons.
+    from test_chart import fonts_used
+
+    series = [make_series(article=a, lang=l) for a, l in (("天文学", "ja"), ("间歇性断食", "zh"), ("천문학", "ko"))]
+    output = tmp_path / "report.pdf"
+    generate_report(make_analysis(series), output_path=output, lang="en", summary="天文学への関心が高まっている。")
+
+    used = fonts_used(output)
+    assert {used[ch] for ch in "天文学间歇性断食への関心"} == {"DroidSansFallback"}
+    assert {used[ch] for ch in "천문학"} == {"NanumGothic"}
+
+
+def test_runs_keep_latin_and_spaces_in_the_base_font():
+    report._register_fonts()
+
+    assert report._runs("Python (编程语言)", report.REGULAR) == [
+        (report.REGULAR, "Python ("), ("DroidSansFallback", "编程语言"), (report.REGULAR, ")"),
+    ]
+    assert report._runs("Інтервальне голодування", report.REGULAR) == [(report.REGULAR, "Інтервальне голодування")]
+
+
+def test_cjk_text_wraps_between_characters_within_the_width():
+    # CJK is written without spaces: simpleSplit, which only breaks at
+    # spaces, would leave it as one line running off the page.
+    report._register_fonts()
+    text = "天文学への関心は過去二年間で着実に高まっており、特に若い世代で顕著である。" * 3
+    width = 60 * report.mm
+
+    lines = report._wrap(text, report.REGULAR, 10, width)
+
+    assert len(lines) > 1
+    assert "".join(lines) == text
+    assert all(report._width(line, report.REGULAR, 10) <= width for line in lines)
+
+
+@pytest.mark.parametrize("lang, expected, absent", [
+    ("pl", ["Wniosek", "Zaufanie", "rośnie", "wysokie", "istotny statystycznie", "sty 2024", "Wersje językowe"], ["Conclusion", "statistically"]),
+    ("cs", ["Závěr", "Důvěra", "roste", "vysoká", "statisticky významný", "led 2024", "Jazykové verze"], ["Conclusion", "statistically"]),
+])
+def test_polish_and_czech_reports_are_localized_throughout(tmp_path, lang, expected, absent):
+    text = report_text(tmp_path, make_analysis(), lang=lang)
+
+    for phrase in expected + [CHART_LABELS[lang]["title"]]:
+        assert phrase in text
+    for phrase in absent:
+        assert phrase not in text
