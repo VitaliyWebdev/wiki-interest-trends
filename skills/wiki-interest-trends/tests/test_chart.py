@@ -125,3 +125,41 @@ def test_spread_pushes_labels_back_down_from_the_top_edge():
 
     assert spread[1] == 1.0
     assert abs(spread[0] - 0.95) < 1e-9
+
+
+def fonts_used(pdf_path):
+    """{character: BaseFont} for every non-ASCII character drawn."""
+    used = {}
+
+    def visit(text, cm, tm, font, size):
+        for ch in text:
+            if ord(ch) > 0x7F and font:
+                used[ch] = font["/BaseFont"].split("+")[-1]
+
+    PdfReader(str(pdf_path)).pages[0].extract_text(visitor_text=visit)
+    return used
+
+
+def test_chinese_japanese_and_korean_labels_are_drawn_in_fonts_that_have_them(tmp_path):
+    # DejaVu Sans has no CJK: these titles used to print as empty boxes.
+    import warnings
+
+    output = tmp_path / "chart.pdf"
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # matplotlib warns "Glyph ... missing from font(s)"
+        render_chart({"天文学 (ja)": months(3), "间歇性断食 (zh)": months(3), "천문학 (ko)": months(3)}, output)
+
+    used = fonts_used(output)
+    assert {used[ch] for ch in "天文学间歇性断食"} == {"DroidSansFallback"}
+    assert {used[ch] for ch in "천문학"} == {"NanumGothic"}
+
+
+def test_hangul_syllables_are_not_split_into_jamo(tmp_path):
+    # With Droid Sans Fallback ahead of NanumGothic, matplotlib decomposed
+    # 간 into 가 + ᆫ and drew the jamo from Droid: "가ㄴ헐적" on the chart.
+    # The extracted text still reads "간", so check the font instead.
+    output = tmp_path / "chart.pdf"
+    render_chart({"간헐적 단식 (ko)": months(3)}, output)
+
+    used = fonts_used(output)
+    assert {used[ch] for ch in "간헐적단식"} == {"NanumGothic"}

@@ -4,17 +4,18 @@ description: >-
   Analyzes interest in a topic over time using Wikipedia pageview statistics
   across language editions -- compares growth, trend significance, and a
   confidence ("trust") level between languages or topics, and can produce a
-  one-page PDF report with a chart, in English or Ukrainian. Use when
-  researching audience/market interest for a product idea, deciding which
-  languages or countries to localize or launch into, checking whether
-  interest in a topic is growing or declining, comparing topic popularity
-  across language editions, or preparing a founder/stakeholder-facing report
-  backed by real data. Not for measuring purchase intent, ad-hoc trivia
-  lookups, or real-time/breaking-news monitoring. English trigger phrases:
-  is interest in X growing, Wikipedia pageviews, which market to launch in,
-  interest trend report. Ukrainian trigger phrases: інтерес до теми, тренди
-  Wikipedia, чи росте попит, вибір мов для локалізації, порівняння ринків,
-  аналіз популярності, перегляди статей, довіра до тренду.
+  one-page PDF report with a chart, in English, Ukrainian, Polish or Czech.
+  Use when researching audience/market interest for a product idea,
+  deciding which languages or countries to localize or launch into,
+  checking whether interest in a topic is growing, comparing topic
+  popularity across language editions, or preparing a stakeholder report
+  backed by real data. Not for purchase intent, trivia lookups, or
+  real-time news monitoring. Triggers: is interest in X growing, Wikipedia
+  pageviews, which market to launch in, interest trend report; інтерес до
+  теми, тренди Wikipedia, чи росте попит, вибір мов для локалізації,
+  порівняння ринків, довіра до тренду; zainteresowanie tematem, czy rośnie
+  zainteresowanie, trendy Wikipedii; zájem o téma, roste zájem, trendy
+  Wikipedie.
 compatibility: Requires uv (auto-installed by this skill if missing; uv manages its own Python, no separate Python install needed) and network access to www.wikidata.org, wikimedia.org, and a *.wikipedia.org host per requested language (e.g. en.wikipedia.org, uk.wikipedia.org).
 metadata:
   version: "1.0"
@@ -188,6 +189,11 @@ uv run scripts/report.py --analysis-json wikitrends-out/<run-id>/analysis.json -
   Trust reasons come pre-written in `series[].trust.reasons` (English) and
   `series[].trust.reason_codes` (for `report.py` to localize); you can
   paraphrase them into your own answer.
+- **`yoy_growth` is the last 12 months vs the 12 before them**, not the
+  change from the start of the range to its end, even with `--last 24m`.
+  Say "−54% year on year" / "−54% р/р", never "fell 54% over two years".
+  A real Polish eval run wrote "spadło o 53,6% w ciągu dwóch lat" into
+  the PDF.
 - **Never claim interest = demand.** "Growing interest in X" is fine.
   "People want to buy X" is not something this data supports.
 - **Prefer the normalized numbers** (`per_million` / `yoy_growth_normalized`)
@@ -249,20 +255,21 @@ Quick reference:
 
 ## Language
 
-This skill works the same in **English and Ukrainian**. Work out which
-one the user is writing in from their own message, and keep to it for
-the whole answer. Three different "language" settings are involved, and
+This skill works the same in **English, Ukrainian, Polish and Czech**.
+Work out which one the user is writing in from their own message, and
+keep to it for the whole answer. Three different "language" settings are involved, and
 they're independent of each other:
 
 - **The answer language** is the user's language. Write your answer, the
   one-line PDF offer, and `report.py`'s `--question`/`--summary` in it.
   `trust.reasons` and error hints in the JSON are English. Paraphrase them
   in the user's language instead of pasting English into a Ukrainian answer.
-- **`report.py --lang`** is the PDF's language: `en` or `uk`, matching the
-  answer language. Headings, table values, trust reasons, and the chart
-  are all rendered in it. For any other language pass `en` (the
-  fallback), but still write `--question`/`--summary` in the user's own
-  language.
+- **`report.py --lang`** is the PDF's language: `en`, `uk`, `pl` or `cs`,
+  matching the answer language. Headings, table values, trust reasons,
+  and the chart are all rendered in it. For any other language pass `en`
+  (the fallback), but still write `--question`/`--summary` in the user's
+  own language. Article titles and your own text print correctly in any
+  of these, and in Chinese, Japanese or Korean too.
 - **Which Wikipedia editions to analyze** (`--langs`, or `analyze.py
   --lang` with `--titles`) has nothing to do with the user's language: an
   English speaker can ask about the Ukrainian edition, and vice versa.

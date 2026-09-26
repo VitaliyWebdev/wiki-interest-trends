@@ -72,3 +72,13 @@ def test_percentages_use_a_real_minus_sign_and_a_dash_for_missing():
     assert format_pct(0.42) == "+42%"
     assert format_pct(-0.2) == "\u221220%"
     assert format_pct(None) == "\u2014"
+
+
+def test_polish_and_czech_dates_and_numbers():
+    assert month_label(10, 2024, "pl") == "paź 2024"
+    assert month_label(6, 2024, "cs") == "čvn 2024"
+    assert format_int(27880, "pl") == "27 880"
+    assert format_compact(27880, "pl") == "27,9 tys."
+    assert format_compact(1_260_000, "pl") == "1,3 mln"
+    assert format_compact(27880, "cs") == "27,9 tis."
+    assert format_compact(1_260_000, "cs") == "1,3 mil."

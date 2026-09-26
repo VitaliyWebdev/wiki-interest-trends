@@ -43,11 +43,12 @@ from wikitrends import theme
 from wikitrends.chart import FIGURE_PAD_PT, render_chart
 from wikitrends.cli import run_cli
 from wikitrends.errors import AppError
+from wikitrends.fonts import BOLD_FILE, FALLBACK_FILES, FONTS_DIR, REGULAR_FILE, require_fonts
 from wikitrends.i18n import DEFAULT_LANG, SUPPORTED_LANGS, format_compact, format_int, format_pct, month_label, pick
 from wikitrends.trust import Reason, render_reason
 
-FONTS_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
 REGULAR, BOLD = "DejaVuSans", "DejaVuSans-Bold"
+FALLBACKS = ("NanumGothic", "DroidSansFallback")  # reportlab names, in FALLBACK_FILES order
 
 PAGE_W, PAGE_H = A4
 MARGIN = 15 * mm
@@ -133,36 +134,134 @@ LABELS: Dict[str, Dict[str, Any]] = {
         "trend_values": {"increasing": "increasing", "decreasing": "decreasing", "no trend": "no trend"},
         "trust_values": {"high": "high", "medium": "medium", "low": "low", "--": "--"},
     },
+    "pl": {
+        "overline": "TRENDY ZAINTERESOWANIA W WIKIPEDII",
+        "title": "Raport o zainteresowaniu tematem w Wikipedii",
+        "question": "Pytanie",
+        "conclusion": "Wniosek",
+        "no_conclusion": "Nie podano wniosku.",
+        "editions": "Wersje językowe",
+        "yoy_caption": "ostatnie 12 mies. wobec poprzednich 12",
+        "yoy_caption_short": "rok do roku",
+        "no_yoy": "za mało danych dla YoY",
+        "views_per_month": "wyśw./mies.",
+        "trust": "Zaufanie",
+        "trust_worst": "najniższe z {n} serii",
+        "checks_passed": "zaliczono {passed} z {total} kontroli",
+        "details": "Szczegóły według serii",
+        "table_header": ["Artykuł", "Język", "Dynamika", "Wyśw./mies.", "YoY", "YoY skor.", "Trend", "Zaufanie"],
+        "not_found": "brak artykułu w tej wersji językowej",
+        "more_rows": "... jeszcze {n} w analysis.json",
+        "why_trust": "Skąd taki poziom zaufania",
+        "all_series": "Wszystkie serie",
+        "more_reasons": "… reszta w analysis.json",
+        "how_to_read": "Jak czytać ten raport",
+        "method": [
+            "Normalizacja: wyświetlenia na milion wszystkich wyświetleń wersji językowej, żeby jej własny "
+            "wzrost czy spadek nie był mylony ze zmianą zainteresowania.",
+            "YoY: ostatnie 12 mies. wobec poprzednich 12 (pełne lata znoszą sezonowość). "
+            "YoY skor. — to samo na danych znormalizowanych.",
+            "Trend: test Manna–Kendalla; kierunek stwierdzamy tylko przy p < 0,05.",
+            "Zaufanie: długość historii, wolumen, istotność, zgodność po normalizacji, skoki.",
+        ],
+        "source": "Dane",
+        "source_value": "Wikimedia Pageviews API (ruch ludzi, wszystkie platformy) + Wikidata",
+        "generated": "Wygenerowano",
+        "trend_values": {"increasing": "rośnie", "decreasing": "maleje", "no trend": "brak trendu"},
+        "trust_values": {"high": "wysokie", "medium": "średnie", "low": "niskie", "--": "--"},
+    },
+    "cs": {
+        "overline": "TRENDY ZÁJMU NA WIKIPEDII",
+        "title": "Zpráva o zájmu o téma na Wikipedii",
+        "question": "Otázka",
+        "conclusion": "Závěr",
+        "no_conclusion": "Závěr nebyl uveden.",
+        "editions": "Jazykové verze",
+        "yoy_caption": "posledních 12 měs. oproti předchozím 12",
+        "yoy_caption_short": "oproti předchozím 12 měs.",
+        "no_yoy": "málo dat pro YoY",
+        "views_per_month": "zobr./měs.",
+        "trust": "Důvěra",
+        "trust_worst": "nejnižší z {n} řad",
+        "checks_passed": "splněno {passed} z {total} kontrol",
+        "details": "Podrobnosti po řadách",
+        "table_header": ["Článek", "Jazyk", "Vývoj", "Zobr./měs.", "YoY", "YoY upr.", "Trend", "Důvěra"],
+        "not_found": "v této jazykové verzi článek není",
+        "more_rows": "... dalších {n} v analysis.json",
+        "why_trust": "Proč taková důvěra",
+        "all_series": "Všechny řady",
+        "more_reasons": "… zbytek je v analysis.json",
+        "how_to_read": "Jak číst tuto zprávu",
+        "method": [
+            "Normalizace: zobrazení na milion všech zobrazení jazykové verze, aby se její vlastní růst "
+            "či pokles nezaměňoval se změnou zájmu.",
+            "YoY: posledních 12 měs. oproti předchozím 12 (celé roky ruší sezónnost). "
+            "YoY upr. — totéž na normalizovaných datech.",
+            "Trend: Mannův–Kendallův test; směr tvrdíme jen při p < 0,05.",
+            "Důvěra: délka historie, objem, významnost, shoda po normalizaci, výkyvy.",
+        ],
+        "source": "Data",
+        "source_value": "Wikimedia Pageviews API (návštěvy lidí, všechny platformy) + Wikidata",
+        "generated": "Vytvořeno",
+        "trend_values": {"increasing": "roste", "decreasing": "klesá", "no trend": "bez trendu"},
+        "trust_values": {"high": "vysoká", "medium": "střední", "low": "nízká", "--": "--"},
+    },
 }
 
 
 def _register_fonts() -> None:
-    regular = FONTS_DIR / "DejaVuSans.ttf"
-    bold = FONTS_DIR / "DejaVuSans-Bold.ttf"
-    if not regular.exists() or not bold.exists():
-        raise AppError(
-            error_code="fonts_missing",
-            message=f"DejaVu fonts not found under {FONTS_DIR}",
-            hint="Re-fetch assets/fonts/DejaVuSans.ttf and DejaVuSans-Bold.ttf.",
-        )
+    require_fonts(FONTS_DIR)
     # pdfmetrics' font registry is a process-global singleton -- re-registering
     # the same font name twice in one process is wasted work (though harmless),
     # so skip it once done. The existence check above still runs every call.
     if REGULAR in pdfmetrics.getRegisteredFontNames():
         return
-    pdfmetrics.registerFont(TTFont(REGULAR, str(regular)))
-    pdfmetrics.registerFont(TTFont(BOLD, str(bold)))
+    for name, file in ((REGULAR, REGULAR_FILE), (BOLD, BOLD_FILE), *zip(FALLBACKS, FALLBACK_FILES)):
+        pdfmetrics.registerFont(TTFont(name, str(FONTS_DIR / file)))
 
 
 # ---------------------------------------------------------------- text
 
 
+def _has_glyph(font: str, ch: str) -> bool:
+    return ord(ch) in pdfmetrics.getFont(font).face.charToGlyph
+
+
+def _font_for(ch: str, font: str) -> str:
+    # Whitespace always stays in the base font: Droid Sans Fallback has no space.
+    if ch.isspace() or _has_glyph(font, ch):
+        return font
+    return next((f for f in FALLBACKS if _has_glyph(f, ch)), font)
+
+
+def _runs(text: str, font: str) -> List[Tuple[str, str]]:
+    """(font, text) pieces: reportlab draws a string in one font, with no
+    per-glyph fallback, so a Chinese, Japanese or Korean character DejaVu
+    lacks is drawn in the first bundled font that has it (see fonts.py)."""
+    runs: List[Tuple[str, str]] = []
+    for ch in text:
+        f = _font_for(ch, font)
+        if runs and runs[-1][0] == f:
+            runs[-1] = (f, runs[-1][1] + ch)
+        else:
+            runs.append((f, ch))
+    return runs
+
+
+def _width(text: str, font: str, size: float) -> float:
+    return sum(stringWidth(t, f, size) for f, t in _runs(text, font))
+
+
+def _needs_fallback(text: str, font: str) -> bool:
+    return any(f != font for f, _ in _runs(text, font))
+
+
 def _fit(text: str, font: str, size: float, width: float, ellipsis: bool = False) -> str:
     """Shortens text to fit `width`, ending it in "…" if anything was cut
     -- or always, with ellipsis=True, to mark that more text was dropped."""
-    if not ellipsis and stringWidth(text, font, size) <= width:
+    if not ellipsis and _width(text, font, size) <= width:
         return text
-    while text and stringWidth(text.rstrip() + "…", font, size) > width:
+    while text and _width(text.rstrip() + "…", font, size) > width:
         text = text[:-1]
     return text.rstrip() + "…"
 
@@ -171,9 +270,31 @@ def _first_that_fits(options: List[str], font: str, size: float, width: float) -
     """The first of several phrasings, longest first, that fits whole --
     a shorter wording reads better than a longer one cut off mid-word."""
     for option in options:
-        if stringWidth(option, font, size) <= width:
+        if _width(option, font, size) <= width:
             return option
     return _fit(options[-1], font, size, width)
+
+
+def _split_mixed(paragraph: str, font: str, size: float, width: float) -> List[str]:
+    """simpleSplit for text with CJK in it: it measures in one font and only
+    breaks at spaces, but CJK is written without spaces and may break
+    between any two of its characters."""
+    tokens: List[str] = []
+    for ch in paragraph:
+        cjk = _font_for(ch, font) != font
+        if tokens and not cjk and not ch.isspace() and not tokens[-1][-1].isspace() \
+                and _font_for(tokens[-1][-1], font) == font:
+            tokens[-1] += ch
+        else:
+            tokens.append(ch)
+    lines, line = [], ""
+    for token in tokens:
+        if not line.strip() or _width((line + token).rstrip(), font, size) <= width:
+            line = (line + token).lstrip()
+        else:
+            lines.append(line.rstrip())
+            line = token.lstrip()
+    return lines + [line.rstrip()] if line.strip() else lines
 
 
 def _wrap(text: str, font: str, size: float, width: float, max_lines: Optional[int] = None) -> List[str]:
@@ -181,7 +302,8 @@ def _wrap(text: str, font: str, size: float, width: float, max_lines: Optional[i
     broke lines early for narrow letters and ran long for wide ones)."""
     lines: List[str] = []
     for paragraph in text.splitlines() or [""]:
-        lines.extend(simpleSplit(paragraph, font, size, width) or [""])
+        split = _split_mixed if _needs_fallback(paragraph, font) else simpleSplit
+        lines.extend(split(paragraph, font, size, width) or [""])
     if max_lines is not None and len(lines) > max_lines:
         lines = lines[:max_lines]
         lines[-1] = _fit(lines[-1], font, size, width, ellipsis=True)
@@ -202,10 +324,14 @@ class _Page:
 
     def text(self, x: float, baseline: float, s: str, font: str = REGULAR, size: float = 8,
              color: str = theme.INK, right: bool = False, char_space: float = 0) -> None:
-        self.c.setFont(font, size)
         self.c.setFillColor(HexColor(color))
-        draw = self.c.drawRightString if right else self.c.drawString
-        draw(x, baseline, s, charSpace=char_space)
+        runs = _runs(s, font)
+        if right:
+            x -= sum(stringWidth(t, f, size) + char_space * len(t) for f, t in runs)
+        for f, t in runs:
+            self.c.setFont(f, size)
+            self.c.drawString(x, baseline, t, charSpace=char_space)
+            x += stringWidth(t, f, size) + char_space * len(t)
 
     def lines(self, lines: List[str], x: float, font: str, size: float, leading: float,
               color: str = theme.INK) -> None:
@@ -404,6 +530,31 @@ class _Sparkline(Flowable):
         self.canv.circle(*points[-1], 1.1, stroke=0, fill=1)
 
 
+class _RunText(Flowable):
+    """A one-line table cell drawn run by run (see _runs): a plain string
+    cell takes the table's single FONTNAME and would lose its CJK glyphs."""
+
+    def __init__(self, text: str, font: str, size: float, color: str):
+        super().__init__()
+        self.text, self.font, self.size, self.color = text, font, size, color
+
+    def wrap(self, *_):
+        return _width(self.text, self.font, self.size), self.size
+
+    def draw(self):
+        x = 0.0
+        self.canv.setFillColor(HexColor(self.color))
+        for f, t in _runs(self.text, self.font):
+            self.canv.setFont(f, self.size)
+            self.canv.drawString(x, self.size * 0.2, t)
+            x += stringWidth(t, f, self.size)
+
+
+def _cell(text: str, width: float, color: str = theme.INK) -> Any:
+    text = _fit(text, REGULAR, 8, width)
+    return _RunText(text, REGULAR, 8, color) if _needs_fallback(text, REGULAR) else text
+
+
 def _draw_table(page: _Page, labels: Dict[str, Any], found: List[Dict[str, Any]],
                 not_found: List[Dict[str, Any]], lang: str) -> None:
     page.lines([labels["details"]], MARGIN, BOLD, 10, 12)
@@ -439,7 +590,7 @@ def _draw_table(page: _Page, labels: Dict[str, Any], found: List[Dict[str, Any]]
         values = [p["per_million"] for p in s["normalized"]]
         r = len(rows)
         rows.append([
-            _fit(s["article"] or "", REGULAR, 8, widths[0] - cell_pad),
+            _cell(s["article"] or "", widths[0] - cell_pad),
             s["lang"],
             _Sparkline(values, theme.series_color(i), widths[2] - 2 * cell_pad, 12) if values else "",
             format_int(m["avg_monthly_views"], lang),
@@ -456,7 +607,7 @@ def _draw_table(page: _Page, labels: Dict[str, Any], found: List[Dict[str, Any]]
         ]
     for s in not_found[: max(0, MAX_TABLE_ROWS - len(found))]:
         r = len(rows)
-        rows.append([_fit(s.get("article") or s["label"], REGULAR, 8, widths[0] - cell_pad), s["lang"],
+        rows.append([_cell(s.get("article") or s["label"], widths[0] - cell_pad, theme.FAINT), s["lang"],
                      labels["not_found"], "", "", "", "", ""])
         style += [("SPAN", (2, r), (-1, r)), ("TEXTCOLOR", (0, r), (-1, r), HexColor(theme.FAINT))]
 

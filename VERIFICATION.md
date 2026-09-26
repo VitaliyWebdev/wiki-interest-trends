@@ -685,3 +685,58 @@ skill (base directory confirmed) passed `--summary "В українській В
 інтерес спадає на 35% за рік. В англійській Вікіпедії практично немає
 тренду (+ 3%). Дані охоплюють 24 місяці і є надійними."`, with no outside
 claims, and none in the chat answer either.
+
+## Stage 15: Polish + Czech reports, CJK fonts
+
+From an audit against the task spec. Two known limitations fixed:
+
+1. **PDF labels only in `en`/`uk`.** A user asking in Polish or Czech (two
+   of the task's example editions) got an English PDF. Added `pl` and
+   `cs` to every string table (`report.LABELS`, `chart.CHART_LABELS`,
+   `trust.REASON_TEMPLATES`, i18n dates/numbers) and to SKILL.md's
+   description (991/1024 chars) and Language section. The parity test
+   passing is what shows nothing was missed.
+2. **CJK titles as empty boxes.** Bundled NanumGothic (Hangul, OFL) and
+   Droid Sans Fallback (CJK + kana, Apache 2.0), 6 MB together.
+   matplotlib gets them as `font.family` fallbacks; reportlab draws text
+   run by run (`report._runs`) because it has no per-glyph fallback, and
+   wraps CJK between characters. See `docs/dev/fonts.md`.
+
+Verified:
+- Reproduced first: matplotlib warned "Glyph ... missing from DejaVu
+  Sans" for every CJK character, and the PDF drew them as boxes (PNG
+  looked at). After: no warnings, each character drawn in the right font
+  (checked per character with pypdf's text visitor).
+- The 5 new tests fail on the old code and pass on the new one.
+- Live data, Q1666254 on `pl,cs,ja,ko`: Polish and Czech PDFs looked at
+  page by page. Found and fixed from that: 간 drawn as "가ㄴ" (Droid's
+  jamo won over Nanum; order swapped, test checks the font because the
+  extracted text read "간" even when it looked wrong), and the Polish
+  card caption cut with "…" (now "rok do roku").
+- 174 tests pass from the repo root and from a copy of only
+  `skills/wiki-interest-trends/`. `skills_ref.validate` and
+  `claude plugin validate .` pass.
+
+Haiku 4.5 (`claude-haiku-4-5-20251001`), clean workspace, skill under
+`.claude/skills/`, tools limited to `Bash(uv|ls|cat|curl:*)`, Read, Glob,
+Grep, Skill. Three new scenarios in `evals/evals.json`:
+
+- `polish_compare_langs_report`: pass. `--langs cs,pl`, missing Polish
+  article named as a finding, answer in Polish, `report.py --lang pl`,
+  PDF fully Polish. **But** it wrote "spadło o 53,6% w ciągu dwóch lat"
+  into the PDF: YoY read as change over the `--last 24m` range. SKILL.md
+  never said what `yoy_growth` compares. Added a rule. Re-run (after one
+  run lost to a Wikimedia 429): "−53,6% rok do roku (ostatnie 12
+  miesięcy vs. poprzednie 12)" in both the chat and `--summary`.
+- `czech_single_topic_trust`: pass. Czech answer, trust level with five
+  reasons, PDF offer in Czech; the follow-up "Ano, udělej z toho PDF"
+  ran `report.py --lang cs` on the same `analysis.json`. Its summary had
+  the same "v posledních dvou letech" error (that session predates the
+  rule).
+- `cjk_editions_report`: pass. `--langs ja,ko`, `--lang uk`, 断続的断食 and
+  간헐적 단식 readable in the cards, chart, table and reasons.
+
+Still open: in both Polish runs Haiku gave the trust level in chat
+without a reason, although SKILL.md already requires one. Its Czech and
+Polish have occasional grammar slips; that's the model, not the skill.
+Scripts needing shaping (Devanagari, Thai) remain unshaped (README).

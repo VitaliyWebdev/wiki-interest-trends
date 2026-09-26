@@ -1,3 +1,4 @@
+import logging
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
@@ -10,6 +11,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patheffects import withStroke
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
+from matplotlib import font_manager
+
+from .fonts import FALLBACK_FILES, FONTS_DIR, require_fonts
 from .i18n import DEFAULT_LANG, DECIMAL_SEP, month_label, pick
 from .theme import FAINT, INK, MUTED, RULE, SURFACE, series_color
 
@@ -30,6 +34,22 @@ CHART_LABELS: Dict[str, Dict[str, str]] = {
         "peak": "пік",
         "no_data": "Немає даних для графіка",
     },
+    "pl": {
+        "title": "Zainteresowanie w czasie",
+        "subtitle_per_million": "Wyświetlenia na milion wszystkich wyświetleń wersji językowej",
+        "subtitle_index": "Indeks, 100 = własna średnia każdej serii · z korektą o ogólny ruch wersji językowej",
+        "last_12": "ostatnie 12 mies.",
+        "peak": "szczyt",
+        "no_data": "Brak danych do wykresu",
+    },
+    "cs": {
+        "title": "Zájem v čase",
+        "subtitle_per_million": "Zobrazení na milion všech zobrazení jazykové verze",
+        "subtitle_index": "Index, 100 = vlastní průměr každé řady · očištěno o celkový provoz jazykové verze",
+        "last_12": "posledních 12 měs.",
+        "peak": "vrchol",
+        "no_data": "Žádná data pro graf",
+    },
 }
 
 # 180 x 66 mm -- the PDF report's content width, so report.py embeds the
@@ -45,9 +65,9 @@ FONT_SIZE = 8
 # chart left by this much so the chart title lines up with the page text.
 FIGURE_PAD_PT = 4
 
+# font.family is set per render by _font_family(): the same fonts the PDF
+# uses, so chart and page read as one document.
 _STYLE = {
-    # The same font the PDF uses, so chart and page read as one document.
-    "font.family": "DejaVu Sans",
     "font.size": FONT_SIZE,
     "axes.spines.top": False,
     "axes.spines.right": False,
@@ -66,6 +86,27 @@ _STYLE = {
     # searchable, and checkable by extracting the PDF's text in tests.
     "pdf.fonttype": 42,
 }
+
+
+_font_families: List[str] = []
+
+
+def _font_family() -> List[str]:
+    """DejaVu Sans first, then the bundled CJK fonts: matplotlib falls back
+    per glyph through this list, so a Japanese title is drawn in Droid Sans
+    Fallback while the " (ja)" after it stays DejaVu."""
+    if not _font_families:
+        require_fonts(FONTS_DIR)
+        names = []
+        for name in FALLBACK_FILES:
+            path = str(FONTS_DIR / name)
+            font_manager.fontManager.addfont(path)
+            names.append(font_manager.FontProperties(fname=path).get_name())
+        _font_families.extend(["DejaVu Sans", *names])
+        # The CJK fonts are regular-only by design, and every bold label
+        # would otherwise log "Failed to find font weight bold" to stderr.
+        logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
+    return _font_families
 
 
 def _timestamp_to_date(timestamp: str) -> date:
@@ -225,7 +266,7 @@ def render_chart(
     if as_index:
         plotted = [(color, label, xs, _as_index(ys)) for color, label, xs, ys in plotted]
 
-    with plt.rc_context(_STYLE):
+    with plt.rc_context({**_STYLE, "font.family": _font_family()}):
         fig, ax = plt.subplots(figsize=FIGSIZE)
         pad_x, pad_y = FIGURE_PAD_PT / (FIGSIZE[0] * 72), FIGURE_PAD_PT / (FIGSIZE[1] * 72)
         fig.text(pad_x, 1 - pad_y, labels["title"], ha="left", va="top", fontsize=10, fontweight="bold", color=INK)

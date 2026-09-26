@@ -2,7 +2,7 @@ from typing import Mapping, Optional, TypeVar
 
 T = TypeVar("T")
 
-SUPPORTED_LANGS = ("en", "uk")
+SUPPORTED_LANGS = ("en", "uk", "pl", "cs")
 DEFAULT_LANG = "en"
 
 # CLDR abbreviated month names. Not strftime("%b"): that follows the
@@ -10,11 +10,13 @@ DEFAULT_LANG = "en"
 MONTHS_SHORT = {
     "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
     "uk": ["січ.", "лют.", "бер.", "квіт.", "трав.", "черв.", "лип.", "серп.", "вер.", "жовт.", "лист.", "груд."],
+    "pl": ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"],
+    "cs": ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj", "lis", "pro"],
 }
-THOUSANDS_SEP = {"en": ",", "uk": "\u00a0"}
-DECIMAL_SEP = {"en": ".", "uk": ","}
-THOUSAND_SUFFIX = {"en": "K", "uk": "\u00a0тис."}
-MILLION_SUFFIX = {"en": "M", "uk": "\u00a0млн"}
+THOUSANDS_SEP = {"en": ",", "uk": "\u00a0", "pl": "\u00a0", "cs": "\u00a0"}
+DECIMAL_SEP = {"en": ".", "uk": ",", "pl": ",", "cs": ","}
+THOUSAND_SUFFIX = {"en": "K", "uk": "\u00a0тис.", "pl": "\u00a0tys.", "cs": "\u00a0tis."}
+MILLION_SUFFIX = {"en": "M", "uk": "\u00a0млн", "pl": "\u00a0mln", "cs": "\u00a0mil."}
 MINUS = "\u2212"  # a real minus sign, not a hyphen
 
 

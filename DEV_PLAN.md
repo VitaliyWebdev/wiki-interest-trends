@@ -305,6 +305,13 @@ verification fixed in the skill itself rather than worked around.
       the root's `pytest.ini`). `claude plugin validate .` still passes
       clean after the move.
 
+- [x] **Stage 15 — Polish + Czech PDF, CJK fonts.** From an audit against
+      the task spec: `report.py --lang pl|cs`, bundled NanumGothic + Droid
+      Sans Fallback so Chinese/Japanese/Korean titles stop printing as
+      boxes, and a SKILL.md rule on what `yoy_growth` compares (found in
+      the Haiku run). Details in `VERIFICATION.md` Stage 15,
+      `docs/dev/fonts.md`, `docs/dev/i18n.md`.
+
 ## Global constraints (from the spec, copied verbatim in spirit)
 
 - Python 3.10+, PEP 723 inline script metadata, run via `uv run
